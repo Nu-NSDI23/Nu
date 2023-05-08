@@ -1,0 +1,28 @@
+version: "3"
+services:
+  nginx-thrift:
+    network_mode: bridge
+    image: yg397/openresty-thrift:xenial
+    hostname: nginx-thrift
+    ports:
+      - 8080:8080
+    restart: always
+    volumes:
+      - ../nginx-web-server/lua-scripts:/usr/local/openresty/nginx/lua-scripts
+      - ../nginx-web-server/pages:/usr/local/openresty/nginx/pages
+      - ../nginx-web-server/conf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - ../gen-lua:/gen-lua
+      - ../docker/openresty-thrift/lua-thrift:/usr/local/openresty/lualib/thrift
+      - ../keys:/keys
+    extra_hosts:
+      - "social-graph-service:172.17.0.1"
+      - "compose-post-service:172.17.0.1"
+      - "post-storage-service:172.17.0.1"      
+      - "user-timeline-service:172.17.0.1"
+      - "url-shorten-service:172.17.0.1"
+      - "user-service:172.17.0.1"
+      - "media-service:172.17.0.1"
+      - "text-service:172.17.0.1"
+      - "unique-id-service:172.17.0.1"
+      - "user-mention-service:172.17.0.1"
+      - "home-timeline-service:172.17.0.1"      

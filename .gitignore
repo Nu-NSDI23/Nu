@@ -1,0 +1,8 @@
+*.o
+*.d
+*.a
+*.bak
+glibc
+bin/*
+*~
+.conf_*

@@ -1,0 +1,24 @@
+version: "3"
+services:
+  media-frontend:
+    network_mode: bridge  
+    image: yg397/media-frontend:xenial
+    hostname: media-frontend
+    ports:
+      - 8081:8080
+    restart: always
+    volumes:
+      - ../media-frontend/lua-scripts:/usr/local/openresty/nginx/lua-scripts
+      - ../media-frontend/conf/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+    extra_hosts:
+      - "social-graph-service:172.17.0.1"
+      - "compose-post-service:172.17.0.1"
+      - "post-storage-service:172.17.0.1"      
+      - "user-timeline-service:172.17.0.1"
+      - "url-shorten-service:172.17.0.1"
+      - "user-service:172.17.0.1"
+      - "media-service:172.17.0.1"
+      - "text-service:172.17.0.1"
+      - "unique-id-service:172.17.0.1"
+      - "user-mention-service:172.17.0.1"
+      - "home-timeline-service:172.17.0.1"

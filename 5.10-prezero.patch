@@ -1,0 +1,930 @@
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index a18ec7f63888..56b4ee5a6c9e 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -71,6 +71,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
+ 
++#define MADV_POPULATE_READ	22	/* populate (prefault) page tables readable */
++#define MADV_POPULATE_WRITE	23	/* populate (prefault) page tables writable */
++
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 57dc2ac4f8bd..40b210c65a5a 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -98,6 +98,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
+ 
++#define MADV_POPULATE_READ	22	/* populate (prefault) page tables readable */
++#define MADV_POPULATE_WRITE	23	/* populate (prefault) page tables writable */
++
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index ab78cba446ed..9e3c010c0f61 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -52,6 +52,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
+ 
++#define MADV_POPULATE_READ	22	/* populate (prefault) page tables readable */
++#define MADV_POPULATE_WRITE	23	/* populate (prefault) page tables writable */
++
+ #define MADV_MERGEABLE   65		/* KSM may merge identical pages */
+ #define MADV_UNMERGEABLE 66		/* KSM may not merge identical pages */
+ 
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index e5e643752947..b3a22095371b 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -106,6 +106,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
+ 
++#define MADV_POPULATE_READ	22	/* populate (prefault) page tables readable */
++#define MADV_POPULATE_WRITE	23	/* populate (prefault) page tables writable */
++
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+diff --git a/drivers/virtio/virtio_balloon.c b/drivers/virtio/virtio_balloon.c
+index 481611c09dae..16cd08415e6b 100644
+--- a/drivers/virtio/virtio_balloon.c
++++ b/drivers/virtio/virtio_balloon.c
+@@ -993,6 +993,9 @@ static int virtballoon_probe(struct virtio_device *vdev)
+ 			goto out_unregister_oom;
+ 		}
+ 
++		vb->pr_dev_info.mini_order = 6;
++		vb->pr_dev_info.batch_size = 32 * 1024 * 1024; /* 32M */
++		vb->pr_dev_info.delay_jiffies = 2 * HZ; /* 2 seconds */
+ 		err = page_reporting_register(&vb->pr_dev_info);
+ 		if (err)
+ 			goto out_unregister_oom;
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 14e6202ce47f..6f877220a7d4 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -226,7 +226,13 @@ do {                                                            \
+ #ifndef clear_user_highpage
+ static inline void clear_user_highpage(struct page *page, unsigned long vaddr)
+ {
+-	void *addr = kmap_atomic(page);
++	void *addr;
++
++#ifdef CONFIG_PREZERO_PAGE
++	if (TestClearPageZero(page))
++		return;
++#endif
++	addr = kmap_atomic(page);
+ 	clear_user_page(addr, vaddr, page);
+ 	kunmap_atomic(addr);
+ }
+@@ -277,9 +283,30 @@ alloc_zeroed_user_highpage_movable(struct vm_area_struct *vma,
+ 	return __alloc_zeroed_user_highpage(__GFP_MOVABLE, vma, vaddr);
+ }
+ 
++#ifdef CONFIG_PREZERO_PAGE
++static inline void __clear_highpage(struct page *page)
++{
++	void *kaddr;
++
++	if (PageZero(page))
++		return;
++
++	kaddr = kmap_atomic(page);
++	clear_page(kaddr);
++	SetPageZero(page);
++	kunmap_atomic(kaddr);
++}
++#endif
++
+ static inline void clear_highpage(struct page *page)
+ {
+-	void *kaddr = kmap_atomic(page);
++	void *kaddr;
++
++#ifdef CONFIG_PREZERO_PAGE
++	if (TestClearPageZero(page))
++		return;
++#endif
++	kaddr = kmap_atomic(page);
+ 	clear_page(kaddr);
+ 	kunmap_atomic(kaddr);
+ }
+diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+index 4f6ba9379112..d20b4d943c3f 100644
+--- a/include/linux/page-flags.h
++++ b/include/linux/page-flags.h
+@@ -138,6 +138,9 @@ enum pageflags {
+ #endif
+ #ifdef CONFIG_64BIT
+ 	PG_arch_2,
++#endif
++#ifdef CONFIG_PREZERO_PAGE
++	PG_zero,
+ #endif
+ 	__NR_PAGEFLAGS,
+ 
+@@ -452,6 +455,15 @@ PAGEFLAG(Idle, idle, PF_ANY)
+  */
+ __PAGEFLAG(Reported, reported, PF_NO_COMPOUND)
+ 
++#ifdef CONFIG_PREZERO_PAGE
++PAGEFLAG(Zero, zero, PF_ANY)
++TESTSCFLAG(Zero, zero, PF_ANY)
++#define __PG_ZERO (1UL << PG_zero)
++#else
++PAGEFLAG_FALSE(Zero)
++#define __PG_ZERO 0
++#endif
++
+ /*
+  * On an anonymous page mapped into a user virtual memory area,
+  * page->mapping points to its anon_vma, not to a struct address_space;
+@@ -831,7 +843,7 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
+ 	 1UL << PG_private	| 1UL << PG_private_2	|	\
+ 	 1UL << PG_writeback	| 1UL << PG_reserved	|	\
+ 	 1UL << PG_slab		| 1UL << PG_active 	|	\
+-	 1UL << PG_unevictable	| __PG_MLOCKED)
++	 1UL << PG_unevictable	| __PG_MLOCKED | __PG_ZERO)
+ 
+ /*
+  * Flags checked when a page is prepped for return by the page allocator.
+@@ -842,7 +854,7 @@ static inline void ClearPageSlabPfmemalloc(struct page *page)
+  * alloc-free cycle to prevent from reusing the page.
+  */
+ #define PAGE_FLAGS_CHECK_AT_PREP	\
+-	(((1UL << NR_PAGEFLAGS) - 1) & ~__PG_HWPOISON)
++	(((1UL << NR_PAGEFLAGS) - 1) & ~(__PG_HWPOISON | __PG_ZERO))
+ 
+ #define PAGE_FLAGS_PRIVATE				\
+ 	(1UL << PG_private | 1UL << PG_private_2)
+diff --git a/include/linux/page_reporting.h b/include/linux/page_reporting.h
+index 3b99e0ec24f2..63e1e9fbcaa2 100644
+--- a/include/linux/page_reporting.h
++++ b/include/linux/page_reporting.h
+@@ -13,6 +13,9 @@ struct page_reporting_dev_info {
+ 	int (*report)(struct page_reporting_dev_info *prdev,
+ 		      struct scatterlist *sg, unsigned int nents);
+ 
++	unsigned long batch_size;
++	unsigned long delay_jiffies;
++	int mini_order;
+ 	/* work struct for processing reports */
+ 	struct delayed_work work;
+ 
+diff --git a/include/trace/events/mmflags.h b/include/trace/events/mmflags.h
+index 67018d367b9f..16dfdbfed8d2 100644
+--- a/include/trace/events/mmflags.h
++++ b/include/trace/events/mmflags.h
+@@ -73,6 +73,12 @@
+ #define IF_HAVE_PG_HWPOISON(flag,string)
+ #endif
+ 
++#ifdef CONFIG_PREZERO_PAGE
++#define IF_HAVE_PG_ZERO(flag,string) ,{1UL << flag, string}
++#else
++#define IF_HAVE_PG_ZERO(flag,string)
++#endif
++
+ #if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
+ #define IF_HAVE_PG_IDLE(flag,string) ,{1UL << flag, string}
+ #else
+@@ -110,6 +116,7 @@
+ IF_HAVE_PG_MLOCK(PG_mlocked,		"mlocked"	)		\
+ IF_HAVE_PG_UNCACHED(PG_uncached,	"uncached"	)		\
+ IF_HAVE_PG_HWPOISON(PG_hwpoison,	"hwpoison"	)		\
++IF_HAVE_PG_ZERO(PG_zero,		"zero"		)		\
+ IF_HAVE_PG_IDLE(PG_young,		"young"		)		\
+ IF_HAVE_PG_IDLE(PG_idle,		"idle"		)		\
+ IF_HAVE_PG_ARCH_2(PG_arch_2,		"arch_2"	)
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index f94f65d429be..1567a3294c3d 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -72,6 +72,9 @@
+ #define MADV_COLD	20		/* deactivate these pages */
+ #define MADV_PAGEOUT	21		/* reclaim these pages */
+ 
++#define MADV_POPULATE_READ	22	/* populate (prefault) page tables readable */
++#define MADV_POPULATE_WRITE	23	/* populate (prefault) page tables writable */
++
+ /* compatibility flags */
+ #define MAP_FILE	0
+ 
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 390165ffbb0f..cc6c8776c6e1 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -253,6 +253,16 @@ config PAGE_REPORTING
+ 	  those pages to another entity, such as a hypervisor, so that the
+ 	  memory can be freed within the host for other uses.
+ 
++#
++# support for pre zero out free page
++config PREZERO_PAGE
++	bool "Pre zero out free page"
++	def_bool y
++	depends on PAGE_REPORTING
++	help
++	  Allows pre zero out free pages in freelist based on free
++	  page reporting
++
+ #
+ # support for page migration
+ #
+diff --git a/mm/Makefile b/mm/Makefile
+index d73aed0fc99c..68a597620596 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -120,3 +120,4 @@ obj-$(CONFIG_MEMFD_CREATE) += memfd.o
+ obj-$(CONFIG_MAPPING_DIRTY_HELPERS) += mapping_dirty_helpers.o
+ obj-$(CONFIG_PTDUMP_CORE) += ptdump.o
+ obj-$(CONFIG_PAGE_REPORTING) += page_reporting.o
++obj-$(CONFIG_PREZERO_PAGE) += page_prezero.o
+diff --git a/mm/gup.c b/mm/gup.c
+index 98eb8e6d2609..49674a34bd36 100644
+--- a/mm/gup.c
++++ b/mm/gup.c
+@@ -1431,6 +1431,64 @@ long populate_vma_page_range(struct vm_area_struct *vma,
+ 				NULL, NULL, locked);
+ }
+ 
++/*
++ * faultin_vma_page_range() - populate (prefault) page tables inside the
++ *			      given VMA range readable/writable
++ *
++ * This takes care of mlocking the pages, too, if VM_LOCKED is set.
++ *
++ * @vma: target vma
++ * @start: start address
++ * @end: end address
++ * @write: whether to prefault readable or writable
++ * @locked: whether the mmap_lock is still held
++ *
++ * Returns either number of processed pages in the vma, or a negative error
++ * code on error (see __get_user_pages()).
++ *
++ * vma->vm_mm->mmap_lock must be held. The range must be page-aligned and
++ * covered by the VMA.
++ *
++ * If @locked is NULL, it may be held for read or write and will be unperturbed.
++ *
++ * If @locked is non-NULL, it must held for read only and may be released.  If
++ * it's released, *@locked will be set to 0.
++ */
++long faultin_vma_page_range(struct vm_area_struct *vma, unsigned long start,
++			    unsigned long end, bool write, int *locked)
++{
++	struct mm_struct *mm = vma->vm_mm;
++	unsigned long nr_pages = (end - start) / PAGE_SIZE;
++	int gup_flags;
++
++	VM_BUG_ON(!PAGE_ALIGNED(start));
++	VM_BUG_ON(!PAGE_ALIGNED(end));
++	VM_BUG_ON_VMA(start < vma->vm_start, vma);
++	VM_BUG_ON_VMA(end > vma->vm_end, vma);
++	mmap_assert_locked(mm);
++
++	/*
++	 * FOLL_TOUCH: Mark page accessed and thereby young; will also mark
++	 *	       the page dirty with FOLL_WRITE -- which doesn't make a
++	 *	       difference with !FOLL_FORCE, because the page is writable
++	 *	       in the page table.
++	 * FOLL_HWPOISON: Return -EHWPOISON instead of -EFAULT when we hit
++	 *		  a poisoned page.
++	 * FOLL_POPULATE: Always populate memory with VM_LOCKONFAULT.
++	 * !FOLL_FORCE: Require proper access permissions.
++	 */
++	gup_flags = FOLL_TOUCH | FOLL_POPULATE | FOLL_MLOCK | FOLL_HWPOISON;
++	if (write)
++		gup_flags |= FOLL_WRITE;
++
++	/*
++	 * See check_vma_flags(): Will return -EFAULT on incompatible mappings
++	 * or with insufficient permissions.
++	 */
++	return __get_user_pages(mm, start, nr_pages, gup_flags,
++				NULL, NULL, locked);
++}
++
+ /*
+  * __mm_populate - populate and/or mlock pages within a range of address space.
+  *
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index ec2bb93f7431..45858c101f17 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -2372,7 +2372,8 @@ static void __split_huge_page_tail(struct page *head, int tail,
+ #ifdef CONFIG_64BIT
+ 			 (1L << PG_arch_2) |
+ #endif
+-			 (1L << PG_dirty)));
++			 (1L << PG_dirty) |
++			 __PG_ZERO));
+ 
+ 	/* ->mapping in first tail page is compound_mapcount */
+ 	VM_BUG_ON_PAGE(tail > 2 && page_tail->mapping != TAIL_MAPPING,
+diff --git a/mm/internal.h b/mm/internal.h
+index c43ccdddb0f6..e7e00e636790 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -335,6 +335,9 @@ void __vma_unlink_list(struct mm_struct *mm, struct vm_area_struct *vma);
+ #ifdef CONFIG_MMU
+ extern long populate_vma_page_range(struct vm_area_struct *vma,
+ 		unsigned long start, unsigned long end, int *nonblocking);
++extern long faultin_vma_page_range(struct vm_area_struct *vma,
++                                   unsigned long start, unsigned long end,
++                                   bool write, int *locked);
+ extern void munlock_vma_pages_range(struct vm_area_struct *vma,
+ 			unsigned long start, unsigned long end);
+ static inline void munlock_vma_pages_all(struct vm_area_struct *vma)
+diff --git a/mm/madvise.c b/mm/madvise.c
+index 13f5677b9322..29d84d4acd50 100644
+--- a/mm/madvise.c
++++ b/mm/madvise.c
+@@ -53,6 +53,8 @@ static int madvise_need_mmap_write(int behavior)
+ 	case MADV_COLD:
+ 	case MADV_PAGEOUT:
+ 	case MADV_FREE:
++	case MADV_POPULATE_READ:
++	case MADV_POPULATE_WRITE:
+ 		return 0;
+ 	default:
+ 		/* be safe, default to 1. list exceptions explicitly */
+@@ -60,6 +62,61 @@ static int madvise_need_mmap_write(int behavior)
+ 	}
+ }
+ 
++static long madvise_populate(struct vm_area_struct *vma,
++			     struct vm_area_struct **prev,
++			     unsigned long start, unsigned long end,
++			     int behavior)
++{
++	const bool write = behavior == MADV_POPULATE_WRITE;
++	struct mm_struct *mm = vma->vm_mm;
++	unsigned long tmp_end;
++	int locked = 1;
++	long pages;
++
++	*prev = vma;
++
++	while (start < end) {
++		/*
++		 * We might have temporarily dropped the lock. For example,
++		 * our VMA might have been split.
++		 */
++		if (!vma || start >= vma->vm_end) {
++			vma = find_vma(mm, start);
++			if (!vma || start < vma->vm_start)
++				return -ENOMEM;
++		}
++
++		tmp_end = min_t(unsigned long, end, vma->vm_end);
++		/* Populate (prefault) page tables readable/writable. */
++		pages = faultin_vma_page_range(vma, start, tmp_end, write,
++					       &locked);
++		if (!locked) {
++			mmap_read_lock(mm);
++			locked = 1;
++			*prev = NULL;
++			vma = NULL;
++		}
++		if (pages < 0) {
++			switch (pages) {
++			case -EINTR:
++				return -EINTR;
++			case -EFAULT: /* Incompatible mappings / permissions. */
++				return -EINVAL;
++			case -EHWPOISON:
++				return -EHWPOISON;
++			default:
++				pr_warn_once("%s: unhandled return value: %ld\n",
++					     __func__, pages);
++				fallthrough;
++			case -ENOMEM:
++				return -ENOMEM;
++			}
++		}
++		start += pages * PAGE_SIZE;
++	}
++	return 0;
++}
++
+ /*
+  * We can potentially split a vm area into separate
+  * areas, each area with its own behavior.
+@@ -946,6 +1003,9 @@ madvise_vma(struct vm_area_struct *vma, struct vm_area_struct **prev,
+ 	case MADV_FREE:
+ 	case MADV_DONTNEED:
+ 		return madvise_dontneed_free(vma, prev, start, end, behavior);
++	case MADV_POPULATE_READ:
++	case MADV_POPULATE_WRITE:
++		return madvise_populate(vma, prev, start, end, behavior);
+ 	default:
+ 		return madvise_behavior(vma, prev, start, end, behavior);
+ 	}
+@@ -966,6 +1026,8 @@ madvise_behavior_valid(int behavior)
+ 	case MADV_FREE:
+ 	case MADV_COLD:
+ 	case MADV_PAGEOUT:
++	case MADV_POPULATE_READ:
++	case MADV_POPULATE_WRITE:
+ #ifdef CONFIG_KSM
+ 	case MADV_MERGEABLE:
+ 	case MADV_UNMERGEABLE:
+@@ -1053,6 +1115,10 @@ process_madvise_behavior_valid(int behavior)
+  *		easily if memory pressure hanppens.
+  *  MADV_PAGEOUT - the application is not expected to use this memory soon,
+  *		page out the pages in this range immediately.
++ *  MADV_POPULATE_READ - populate (prefault) page tables readable by
++ *		triggering read faults if required
++ *  MADV_POPULATE_WRITE - populate (prefault) page tables writable by
++ *		triggering write faults if required
+  *
+  * return values:
+  *  zero    - success
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index eaa227a479e4..e1017c3d3237 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -77,6 +77,7 @@
+ #include "internal.h"
+ #include "shuffle.h"
+ #include "page_reporting.h"
++#include "page_prezero.h"
+ 
+ /* Free Page Internal flags: for internal, non-pcp variants of free_pages(). */
+ typedef int __bitwise fpi_t;
+@@ -1208,6 +1209,7 @@ static __always_inline bool free_pages_prepare(struct page *page,
+ 	VM_BUG_ON_PAGE(PageTail(page), page);
+ 
+ 	trace_mm_page_free(page, order);
++	clear_zero_page_flag(page, order);
+ 
+ 	if (unlikely(PageHWPoison(page)) && !order) {
+ 		/*
+@@ -1293,6 +1295,7 @@ static bool free_pcp_prepare(struct page *page)
+ 
+ static bool bulkfree_pcp_prepare(struct page *page)
+ {
++	clear_zero_page_flag(page, 0);
+ 	if (debug_pagealloc_enabled_static())
+ 		return check_free_page(page);
+ 	else
+@@ -1315,6 +1318,7 @@ static bool free_pcp_prepare(struct page *page)
+ 
+ static bool bulkfree_pcp_prepare(struct page *page)
+ {
++	clear_zero_page_flag(page, 0);
+ 	return check_free_page(page);
+ }
+ #endif /* CONFIG_DEBUG_VM */
+diff --git a/mm/page_prezero.c b/mm/page_prezero.c
+new file mode 100644
+index 000000000000..4dd14dd5a29c
+--- /dev/null
++++ b/mm/page_prezero.c
+@@ -0,0 +1,266 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++/*
++ *  Copyright (C) 2020  Didi chuxing.
++ *
++ *  Authors: Liang Li <liliang324@gmail.com>
++ *
++ *  This work is licensed under the terms of the GNU GPL, version 2. See
++ *  the COPYING file in the top-level directory.
++ */
++
++#include <linux/mm.h>
++#include <linux/highmem.h>
++#include <linux/rmap.h>
++#include <linux/mm_inline.h>
++#include <linux/page_reporting.h>
++#include "internal.h"
++#include "page_prezero.h"
++
++#define ZERO_PAGE_STOP	0
++#define ZERO_PAGE_RUN	1
++
++static int mini_page_order = 0;
++static unsigned long batch_size = 64 * 1024 * 1024;
++static unsigned long delay_millisecs = 1000;
++static unsigned long zeropage_enable __read_mostly;
++static DEFINE_MUTEX(kzeropaged_mutex);
++static struct page_reporting_dev_info zero_page_dev_info;
++
++inline void clear_zero_page_flag(struct page *page, int order)
++{
++	int i;
++
++	for (i = 0; i < (1 << order); i++)
++		ClearPageZero(page + i);
++}
++
++static int zero_free_pages(struct page_reporting_dev_info *pr_dev_info,
++			   struct scatterlist *sgl, unsigned int nents)
++{
++	struct scatterlist *sg = sgl;
++
++	might_sleep();
++	do {
++		struct page *page = sg_page(sg);
++		unsigned int order = get_order(sg->length);
++		int i;
++
++		VM_BUG_ON(PageBuddy(page) || buddy_order(page));
++
++		/* pr_info("%s order=%d\n", __func__, order); */
++		for (i = 0; i < (1 << order); i++) {
++			cond_resched();
++			__clear_highpage(page + i);
++		}
++	} while ((sg = sg_next(sg)));
++
++	return 0;
++}
++
++static int start_kzeropaged(void)
++{
++	int err = 0;
++
++	if (zeropage_enable) {
++		zero_page_dev_info.report = zero_free_pages;
++		zero_page_dev_info.mini_order = mini_page_order;
++		zero_page_dev_info.batch_size = batch_size;
++		zero_page_dev_info.delay_jiffies = msecs_to_jiffies(delay_millisecs);
++
++		err = page_reporting_register(&zero_page_dev_info);
++		pr_info("Zero page enabled\n");
++	} else {
++		page_reporting_unregister(&zero_page_dev_info);
++		pr_info("Zero page disabled\n");
++	}
++
++	return err;
++}
++
++static int restart_kzeropaged(void)
++{
++	int err = 0;
++
++	if (zeropage_enable) {
++		page_reporting_unregister(&zero_page_dev_info);
++
++		zero_page_dev_info.report = zero_free_pages;
++		zero_page_dev_info.mini_order = mini_page_order;
++		zero_page_dev_info.batch_size = batch_size;
++		zero_page_dev_info.delay_jiffies = msecs_to_jiffies(delay_millisecs);
++
++		err = page_reporting_register(&zero_page_dev_info);
++		pr_info("Zero page enabled\n");
++	}
++
++	return err;
++}
++
++static ssize_t enabled_show(struct kobject *kobj,
++			    struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%lu\n", zeropage_enable);
++}
++
++static ssize_t enabled_store(struct kobject *kobj,
++			     struct kobj_attribute *attr,
++			     const char *buf, size_t count)
++{
++	ssize_t ret = 0;
++	unsigned long flags;
++	int err;
++
++	err = kstrtoul(buf, 10, &flags);
++	if (err || flags > UINT_MAX)
++		return -EINVAL;
++	if (flags > ZERO_PAGE_RUN)
++		return -EINVAL;
++
++	if (zeropage_enable != flags) {
++		mutex_lock(&kzeropaged_mutex);
++		zeropage_enable = flags;
++		ret = start_kzeropaged();
++		mutex_unlock(&kzeropaged_mutex);
++	}
++
++	return count;
++}
++
++static struct kobj_attribute enabled_attr =
++	__ATTR(enabled, 0644, enabled_show, enabled_store);
++
++
++static ssize_t batch_size_show(struct kobject *kobj,
++		struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%lu\n", batch_size);
++}
++
++static ssize_t batch_size_store(struct kobject *kobj,
++				struct kobj_attribute *attr,
++				const char *buf, size_t count)
++{
++	unsigned long size;
++	int err;
++
++	err = kstrtoul(buf, 10, &size);
++	if (err || size >= UINT_MAX)
++		return -EINVAL;
++
++	batch_size = size;
++
++	restart_kzeropaged();
++	return count;
++}
++
++static struct kobj_attribute batch_size_attr =
++	__ATTR(batch_size, 0644, batch_size_show, batch_size_store);
++
++static ssize_t delay_millisecs_show(struct kobject *kobj,
++		struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%lu\n", delay_millisecs);
++}
++
++static ssize_t delay_millisecs_store(struct kobject *kobj,
++				struct kobj_attribute *attr,
++				const char *buf, size_t count)
++{
++	unsigned long msecs;
++	int err;
++
++	err = kstrtoul(buf, 10, &msecs);
++	if (err || msecs >= UINT_MAX)
++		return -EINVAL;
++
++	delay_millisecs = msecs;
++
++	restart_kzeropaged();
++
++	return count;
++}
++
++static struct kobj_attribute wake_delay_millisecs_attr =
++	__ATTR(delay_millisecs, 0644, delay_millisecs_show,
++		delay_millisecs_store);
++
++static ssize_t mini_order_show(struct kobject *kobj,
++				struct kobj_attribute *attr, char *buf)
++{
++	return sprintf(buf, "%u\n", mini_page_order);
++}
++
++static ssize_t mini_order_store(struct kobject *kobj,
++				struct kobj_attribute *attr,
++				const char *buf, size_t count)
++{
++	unsigned int order;
++	int err;
++
++	err = kstrtouint(buf, 10, &order);
++	if (err || order >= MAX_ORDER)
++		return -EINVAL;
++
++	if (mini_page_order != order) {
++		mutex_lock(&kzeropaged_mutex);
++		mini_page_order = order;
++		mutex_unlock(&kzeropaged_mutex);
++	}
++
++	restart_kzeropaged();
++	return count;
++}
++
++static struct kobj_attribute mini_order_attr =
++	__ATTR(mini_order, 0644, mini_order_show, mini_order_store);
++
++static struct attribute *zeropage_attr[] = {
++	&enabled_attr.attr,
++	&mini_order_attr.attr,
++	&wake_delay_millisecs_attr.attr,
++	&batch_size_attr.attr,
++	NULL,
++};
++
++static struct attribute_group zeropage_attr_group = {
++	.attrs = zeropage_attr,
++};
++
++static int __init zeropage_init_sysfs(struct kobject **zeropage_kobj)
++{
++	int err;
++
++	*zeropage_kobj = kobject_create_and_add("zero_page", mm_kobj);
++	if (unlikely(!*zeropage_kobj)) {
++		pr_err("zeropage: failed to create zeropage kobject\n");
++		return -ENOMEM;
++	}
++
++	err = sysfs_create_group(*zeropage_kobj, &zeropage_attr_group);
++	if (err) {
++		pr_err("zeropage: failed to register zeropage group\n");
++		goto delete_obj;
++	}
++
++	return 0;
++
++delete_obj:
++	kobject_put(*zeropage_kobj);
++	return err;
++}
++
++static int __init zeropage_init(void)
++{
++	int err;
++	struct kobject *zeropage_kobj;
++
++	err = zeropage_init_sysfs(&zeropage_kobj);
++	if (err)
++		return err;
++
++	start_kzeropaged();
++
++	return 0;
++}
++subsys_initcall(zeropage_init);
+diff --git a/mm/page_prezero.h b/mm/page_prezero.h
+new file mode 100644
+index 000000000000..c32111319522
+--- /dev/null
++++ b/mm/page_prezero.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_PREZERO_PAGE_H
++#define _LINUX_PREZERO_PAGE_H
++
++#ifdef CONFIG_PREZERO_PAGE
++extern inline void clear_zero_page_flag(struct page *page, int order);
++#else
++inline void clear_zero_page_flag(struct page *page, int order)
++{
++}
++#endif
++#endif /*_LINUX_PREZERO_NG_H */
+diff --git a/mm/page_reporting.c b/mm/page_reporting.c
+index cd8e13d41df4..c29f8d161962 100644
+--- a/mm/page_reporting.c
++++ b/mm/page_reporting.c
+@@ -6,12 +6,14 @@
+ #include <linux/export.h>
+ #include <linux/delay.h>
+ #include <linux/scatterlist.h>
++#include <linux/sched.h>
+ 
+ #include "page_reporting.h"
+ #include "internal.h"
+ 
+-#define PAGE_REPORTING_DELAY	(2 * HZ)
+ static struct page_reporting_dev_info __rcu *pr_dev_info __read_mostly;
++int page_report_mini_order = pageblock_order;
++unsigned long page_report_batch_size = 32 * 1024 * 1024;
+ 
+ enum {
+ 	PAGE_REPORTING_IDLE = 0,
+@@ -43,7 +45,7 @@ __page_reporting_request(struct page_reporting_dev_info *prdev)
+ 	 * now we are limiting this to running no more than once every
+ 	 * couple of seconds.
+ 	 */
+-	schedule_delayed_work(&prdev->work, PAGE_REPORTING_DELAY);
++	schedule_delayed_work(&prdev->work, prdev->delay_jiffies);
+ }
+ 
+ /* notify prdev of free page reporting request */
+@@ -219,6 +221,26 @@ page_reporting_cycle(struct page_reporting_dev_info *prdev, struct zone *zone,
+ 	return err;
+ }
+ 
++static int
++reporting_order_type(struct page_reporting_dev_info *prdev, struct zone *zone,
++		     unsigned int order, unsigned int mt,
++		     struct scatterlist *sgl, unsigned int *offset)
++{
++	int ret = 0;
++	unsigned long total = 0;
++
++	might_sleep();
++	do {
++		cond_resched();
++		ret = page_reporting_cycle(prdev, zone, order, mt,
++					   sgl, offset);
++		if (ret > 0)
++			total += ret;
++	} while (ret > 0 && total < zone->free_area[order].nr_free);
++
++	return ret;
++}
++
+ static int
+ page_reporting_process_zone(struct page_reporting_dev_info *prdev,
+ 			    struct scatterlist *sgl, struct zone *zone)
+@@ -229,7 +251,7 @@ page_reporting_process_zone(struct page_reporting_dev_info *prdev,
+ 
+ 	/* Generate minimum watermark to be able to guarantee progress */
+ 	watermark = low_wmark_pages(zone) +
+-		    (PAGE_REPORTING_CAPACITY << PAGE_REPORTING_MIN_ORDER);
++		    (PAGE_REPORTING_CAPACITY << prdev->mini_order);
+ 
+ 	/*
+ 	 * Cancel request if insufficient free memory or if we failed
+@@ -239,13 +261,13 @@ page_reporting_process_zone(struct page_reporting_dev_info *prdev,
+ 		return err;
+ 
+ 	/* Process each free list starting from lowest order/mt */
+-	for (order = PAGE_REPORTING_MIN_ORDER; order < MAX_ORDER; order++) {
++	for (order = prdev->mini_order; order < MAX_ORDER; order++) {
+ 		for (mt = 0; mt < MIGRATE_TYPES; mt++) {
+ 			/* We do not pull pages from the isolate free list */
+ 			if (is_migrate_isolate(mt))
+ 				continue;
+ 
+-			err = page_reporting_cycle(prdev, zone, order, mt,
++			err = reporting_order_type(prdev, zone, order, mt,
+ 						   sgl, &offset);
+ 			if (err)
+ 				return err;
+@@ -306,7 +328,7 @@ static void page_reporting_process(struct work_struct *work)
+ 	 */
+ 	state = atomic_cmpxchg(&prdev->state, state, PAGE_REPORTING_IDLE);
+ 	if (state == PAGE_REPORTING_REQUESTED)
+-		schedule_delayed_work(&prdev->work, PAGE_REPORTING_DELAY);
++		schedule_delayed_work(&prdev->work, prdev->delay_jiffies);
+ }
+ 
+ static DEFINE_MUTEX(page_reporting_mutex);
+@@ -334,6 +356,8 @@ int page_reporting_register(struct page_reporting_dev_info *prdev)
+ 	/* Assign device to allow notifications */
+ 	rcu_assign_pointer(pr_dev_info, prdev);
+ 
++	page_report_mini_order = prdev->mini_order;
++	page_report_batch_size = prdev->batch_size;
+ 	/* enable page reporting notification */
+ 	if (!static_key_enabled(&page_reporting_enabled)) {
+ 		static_branch_enable(&page_reporting_enabled);
+@@ -351,6 +375,8 @@ void page_reporting_unregister(struct page_reporting_dev_info *prdev)
+ 	mutex_lock(&page_reporting_mutex);
+ 
+ 	if (rcu_access_pointer(pr_dev_info) == prdev) {
++		if (static_key_enabled(&page_reporting_enabled))
++			static_branch_disable(&page_reporting_enabled);
+ 		/* Disable page reporting notification */
+ 		RCU_INIT_POINTER(pr_dev_info, NULL);
+ 		synchronize_rcu();
+diff --git a/mm/page_reporting.h b/mm/page_reporting.h
+index 2c385dd4ddbd..86ac6ffad970 100644
+--- a/mm/page_reporting.h
++++ b/mm/page_reporting.h
+@@ -9,8 +9,10 @@
+ #include <linux/slab.h>
+ #include <linux/pgtable.h>
+ #include <linux/scatterlist.h>
++#include <linux/page_reporting.h>
+ 
+-#define PAGE_REPORTING_MIN_ORDER	pageblock_order
++extern int page_report_mini_order;
++extern unsigned long page_report_batch_size;
+ 
+ #ifdef CONFIG_PAGE_REPORTING
+ DECLARE_STATIC_KEY_FALSE(page_reporting_enabled);
+@@ -33,16 +35,22 @@ static inline bool page_reported(struct page *page)
+  */
+ static inline void page_reporting_notify_free(unsigned int order)
+ {
++	static long batch_size;
++
+ 	/* Called from hot path in __free_one_page() */
+ 	if (!static_branch_unlikely(&page_reporting_enabled))
+ 		return;
+ 
+ 	/* Determine if we have crossed reporting threshold */
+-	if (order < PAGE_REPORTING_MIN_ORDER)
++	if (order < page_report_mini_order)
+ 		return;
+ 
+-	/* This will add a few cycles, but should be called infrequently */
+-	__page_reporting_notify();
++	batch_size += (1 << order) << PAGE_SHIFT;
++	if (batch_size >= page_report_batch_size) {
++		batch_size = 0;
++		/* This add a few cycles, but should be called infrequently */
++		__page_reporting_notify();
++	}
+ }
+ #else /* CONFIG_PAGE_REPORTING */
+ #define page_reported(_page)	false

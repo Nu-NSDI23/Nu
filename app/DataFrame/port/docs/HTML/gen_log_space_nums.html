@@ -1,0 +1,140 @@
+<!--
+Copyright (c) 2019-2022, Hossein Moein
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+* Neither the name of Hossein Moein and/or the DataFrame nor the
+  names of its contributors may be used to endorse or promote products
+  derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL Hossein Moein BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<!DOCTYPE html>
+<html>
+<body>
+  <table align="center" border="1">
+
+    <tr bgcolor="lightblue">
+        <th>Signature</th> <th>Description</th> <th>Parameters</th>
+    </tr>
+
+    <tr bgcolor="lightgrey">
+      <td bgcolor="maroon"> <font color="white">
+        <PRE><B>
+template&lt;typename T&gt;
+std::vector&lt;T&gt;
+gen_log_space_nums(std::size_t n,
+                   T first,
+                   T last,
+                   T base);
+        </B></PRE></font>
+      </td>
+      <td>
+        Produces n logarithmically spaced numbers between the given base raised to the power of first to last.<BR>
+        <BR>
+        It returns the vector of results<BR>
+      </td>
+      <td>
+        <B>T</B>: Any type that supports arithmetic<BR>
+        <B>n</B>: Number of numerics to generate<BR>
+        <B>first</B>: Starting power to raise the base to<BR>
+        <B>last</B>: Last power to raise the base to<BR>
+        <B>base</B>: Base of the numbers<BR>
+      </td>
+    </tr>
+
+    <tr bgcolor="lightgrey">
+      <td bgcolor="maroon"> <font color="white">
+        <PRE><B>
+template&lt;typename T&gt;
+std::vector&lt;T&gt;
+gen_even_space_nums(std::size_t n,
+                    T first,
+                    T last);
+        </B></PRE></font>
+      </td>
+      <td>
+        This function generates n evenly spaced numbers between the given first and ast parameters. The result vector always starts with first and ends shy of last<BR>
+        <BR>
+        It returns the vector of results<BR>
+      </td>
+      <td>
+        <B>T</B>: Any type that supports arithmetic<BR>
+        <B>n</B>: Number of values to generate<BR>
+        <B>first</B>: Starting value<BR>
+        <B>last</B>: Last value (excluded)<BR>
+      </td>
+    </tr>
+
+    <tr bgcolor="lightgrey">
+      <td bgcolor="maroon"> <font color="white">
+        <PRE><B>
+template&lt;typename T&gt;
+std::vector&lt;T&gt;
+gen_triangular_nums(T last,
+                    T first = 1);
+        </B></PRE></font>
+      </td>
+      <td>
+        A number is termed as triangular number if we can represent it in the form of triangular grid of points such that the points form an equilateral triangle and each row contains as many points as the row number, i.e., the first row has one point, second row has two points, third row has three points and so on.<BR>
+        This function generates n triangle numbers arranged in an equilateral triangle. The n-th triangular number is equal to the sum of the n natural numbers from 1 to n (assuming first is 1 and last is n).<BR>
+        The result vector always starts with a value >= than first and ends with a value <= than last.<BR>
+        <BR>
+        It returns the vector of results<BR>
+      </td>
+      <td width="20%">
+        <B>T</B>: Any type that supports arithmetic<BR>
+        <B>last</B>: Last value<BR>
+        <B>last</B>: Starting value defaulted to 1<BR>
+      </td>
+    </tr>
+
+    <tr bgcolor="lightgrey">
+      <td bgcolor="maroon"> <font color="white">
+        <PRE><B>
+template&lt;typename T&gt;
+std::vector&lt;T&gt;
+gen_sym_triangle(std::size_t n,
+                 const T &amp;start_val,
+                 bool normalize = false);
+        </B></PRE></font>
+      </td>
+      <td>
+        This generates a set of number that represent the upper portion of a symmetric triangle. For example, n = 10 will generate [1, 2, 3, 4, 5, 5, 4, 3, 2, 1], n = 9 will generate [1, 2, 3, 4, 5, 4, 3, 2, 1]. If normalize is true, the numbers are normalized by the sum of all numbers.<BR>
+        <BR>
+        It returns the vector of results<BR>
+      </td>
+      <td width="20%">
+        <B>T</B>: Any type that supports arithmetic<BR>
+        <B>start_val</B>: Starting vlaue of the result<BR>
+        <B>normalize</B>: if true, result numbers are divided by the sum of all numbers<BR>
+      </td>
+    </tr>
+  </table>
+
+  <img src="https://github.com/hosseinmoein/DataFrame/blob/master/docs/LionLookingUp.jpg?raw=true" alt="C++ DataFrame"
+       width="200" height="150" style="float:right"/>
+
+</body>
+</html>
+
+<!--
+Local Variables:
+mode:HTML
+tab-width:4
+c-basic-offset:4
+End:
+-->

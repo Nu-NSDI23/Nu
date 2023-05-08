@@ -1,0 +1,118 @@
+{
+	"version": 2,
+	"remoteDnsServers": [],
+	"envs": [
+		{
+			"name": "",
+			"hostnames": [
+				{
+					"id": 1624675067326533623,
+					"hostname": "social-graph-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675071246558012,
+					"hostname": "back-end-service",
+					"ip": "18.18.1.2",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675074037462436,
+					"hostname": "post-storage-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675076668855716,
+					"hostname": "user-timeline-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675080206534679,
+					"hostname": "url-shorten-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675090220638191,
+					"hostname": "user-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675093028475827,
+					"hostname": "media-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675096213612670,
+					"hostname": "text-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675098925814116,
+					"hostname": "unique-id-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675102726553011,
+					"hostname": "user-mention-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675106176773248,
+					"hostname": "home-timeline-service",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				},
+				{
+					"id": 1624675106176773289,
+					"hostname": "front-end-proxy",
+					"ip": "172.17.0.1",
+					"target": "acme.com",
+					"ttl": 255,
+					"type": "A"
+				}
+			]
+		}
+	],
+	"activeEnv": "",
+	"webServerPort": 0,
+	"dnsServerPort": 0,
+	"defaultDns": null,
+	"logLevel": "",
+	"logFile": "",
+	"registerContainerNames": null,
+	"hostMachineHostname": "",
+	"domain": "",
+	"dpsNetwork": false,
+	"dpsNetworkAutoConnect": false
+}

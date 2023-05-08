@@ -1,0 +1,29 @@
+version: "3"
+services:
+  jaeger:
+    network_mode: bridge
+    image: jaegertracing/all-in-one:latest
+    hostname: jaeger-agent
+    ports:
+      #      - 5775:5775/udp
+      #      - 6831:6831/udp
+      #      - 6832:6832/udp
+      #      - 5778:5778
+      - 16686:16686
+    #      - 14268:14268
+    #      - 9411:9411
+    restart: always
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    extra_hosts:
+      - "social-graph-service:172.17.0.1"
+      - "compose-post-service:172.17.0.1"
+      - "post-storage-service:172.17.0.1"      
+      - "user-timeline-service:172.17.0.1"
+      - "url-shorten-service:172.17.0.1"
+      - "user-service:172.17.0.1"
+      - "media-service:172.17.0.1"
+      - "text-service:172.17.0.1"
+      - "unique-id-service:172.17.0.1"
+      - "user-mention-service:172.17.0.1"
+      - "home-timeline-service:172.17.0.1"

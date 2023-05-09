@@ -30,7 +30,7 @@ for i in range(0, params.n):
     n = request.RawPC('node-%d' % i)
     n.routable_control_ip = True
     n.hardware_type = params.node_type
-    n.disk_image = 'urn:publicid:IDN+utah.cloudlab.us+image+shenango-PG0//nu-100g'
+    n.disk_image = 'urn:publicid:IDN+utah.cloudlab.us+image+shenango-PG0//nu'
     nodes.append(n)
     iface_0 = n.addInterface('interface-%d' % (2 * i), pg.IPv4Address('10.10.1.%d' % (i + 1),'255.255.255.0'))
     ifaces_0.append(iface_0)

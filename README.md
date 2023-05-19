@@ -17,7 +17,7 @@ We recommend you run Nu on [Cloudlab](https://www.cloudlab.us/). Currently, Nu s
 3) Instantiate machines using the profile. 
 
 ### Build Nu
-You can build Nu by simply executing the `build.sh` script we provided. You can either build on all of your machines or build on one machine and then distribute the folder to other machines. The build script will automatically execute the `setup.sh` script to correctly set up the environment for running Nu. You need to manually rerun the setup script each time after rebooting the machine.
+You can build Nu by simply executing the `build.sh` script we provided. You can either build on all of your machines using the same path or build on one machine and then distribute the folder to other machines. The build script will automatically execute the `setup.sh` script to correctly set up the environment for running Nu. You need to manually rerun the setup script each time after rebooting the machine.
 
 After building Nu, you can test it by executing the `test.sh` script on one machine (don't run it simultaneously on multiple machines as it will cause interference). You are expected to see all unit tests passed. All test files are located in the `test` folder; they also serve as a good reference to how to write Nu programs.
 

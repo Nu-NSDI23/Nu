@@ -33,7 +33,6 @@ class Migrator {
 int main(int argc, char **argv) {
   return nu::runtime_main_init(argc, argv, [](int, char **) {
     auto l_ip = MAKE_IP_ADDR(18, 18, 1, 2);
-    auto r_ip = MAKE_IP_ADDR(18, 18, 1, 3);
     std::vector<nu::Proclet<Obj>> objs;
     for (uint32_t i = 0; i < kNumObjs; i++) {
       objs.emplace_back(nu::make_proclet<Obj>(false, std::nullopt, l_ip));
@@ -43,11 +42,12 @@ int main(int argc, char **argv) {
 
   retry:
     for (auto &obj : objs) {
-      if (obj.run(&Obj::get_ip) != r_ip) {
-        std::cout << obj.run(&Obj::get_ip) << " " << r_ip << std::endl;
+      if (obj.run(&Obj::get_ip) == l_ip) {
         timer_sleep(1000 * 1000);
         goto retry;
       }
     }
+
+    std::cout << "Exiting..." << std::endl;
   });
 }

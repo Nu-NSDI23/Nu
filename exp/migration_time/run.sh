@@ -29,10 +29,8 @@ do
     sleep 5
 
     start_server main $SRC_SRV_IDX $LPID 1>logs/$heap_size.src 2>&1 &
-    start_server main $DEST_SRV_IDX $LPID 1>logs/$heap_size.dest 2>&1 &
     sleep 5
-
-    start_main_server main $SRC_SRV_IDX $LPID
+    start_main_server main $DEST_SRV_IDX $LPID 1>logs/$heap_size.dest 2>&1
 
     cleanup
     sleep 5

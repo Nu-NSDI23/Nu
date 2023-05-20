@@ -14,11 +14,6 @@ function caladan_srv_ip() {
     echo "18.18.1."$(($srv_idx+1))
 }
 
-function caladan_main_srv_ip() {
-    srv_idx=$1
-    echo "18.18.1."$(($srv_idx+128))
-}
-
 function probe_num_nodes() {
     num_nodes=1
     while true
@@ -66,12 +61,11 @@ function __start_server() {
     srv_idx=$2
     lpid=$3
     main=$4
+    ip=$(caladan_srv_ip $srv_idx)
     if [[ $main -eq 0 ]]
     then
-	ip=$(caladan_srv_ip $srv_idx)
 	ssh $(ssh_ip $srv_idx) "sudo $file_full_path -l $lpid -i $ip"
     else
-	ip=$(caladan_main_srv_ip $srv_idx)
 	ssh $(ssh_ip $srv_idx) "sudo $file_full_path -m -l $lpid -i $ip"
     fi
 }
@@ -82,6 +76,14 @@ function start_server() {
 
 function start_main_server() {
     __start_server $1 $2 $3 1
+}
+
+function run_program() {
+    file_path=$1
+    file_full_path=$(readlink -f $file_path)
+    srv_idx=$2
+    args=${@:3}
+    ssh $(ssh_ip $srv_idx) "sudo $file_full_path $args"
 }
 
 function distribute() {

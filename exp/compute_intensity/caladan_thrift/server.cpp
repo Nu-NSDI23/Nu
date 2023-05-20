@@ -18,7 +18,7 @@ using apache::thrift::transport::TFramedTransportFactory;
 using apache::thrift::transport::TServerSocket;
 
 constexpr uint32_t kPort = 10088;
-constexpr uint32_t kDelayNs =  10000;
+constexpr uint32_t kDelayNs = 10000;
 
 void delay_ns(uint64_t ns) {
   auto start_tsc = rdtsc();

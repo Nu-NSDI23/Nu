@@ -21,7 +21,7 @@ sed "s/\(constexpr auto kIp = \).*/\1 \"$SRV_IP\";/g" -i client.cpp
 
 for delay in ${DELAYS[@]}
 do
-    sed "s/\(constexpr uint32_t kDelayNs = \).*/\1 $delay;/g" -i server.cpp
+    sed "s/\(constexpr uint32_t kDelayNs = \).*/\1$delay;/g" -i server.cpp
     make
 
     distribute server $SRV_IDX

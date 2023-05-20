@@ -10,7 +10,7 @@ make clean
 
 for delay in ${DELAYS[@]}
 do
-    sed "s/\(constexpr uint32_t kDelayNs =\).*/\1 $delay;/g" -i main.cpp
+    sed "s/\(constexpr uint32_t kDelayNs = \).*/\1$delay;/g" -i main.cpp
     make
 
     start_iokerneld $SRV_IDX

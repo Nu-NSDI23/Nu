@@ -20,8 +20,8 @@ constexpr uint32_t kDelayNs = 10000;
 constexpr uint32_t kNumThreads = 2000;
 constexpr uint32_t kPrintIntervalUS = 1000 * 1000;
 constexpr uint32_t kNumItersPerYield = 1000 * 1000 / kDelayNs;
-constexpr uint32_t kServerIP = MAKE_IP_ADDR(18, 18, 1, 3);
-constexpr uint32_t kClientIP = MAKE_IP_ADDR(18, 18, 1, 129);
+constexpr uint32_t kServerIP = MAKE_IP_ADDR(18, 18, 1, 4);
+constexpr uint32_t kClientIP = MAKE_IP_ADDR(18, 18, 1, 3);
 
 struct alignas(kCacheLineBytes) AlignedCnt {
   uint32_t cnt;

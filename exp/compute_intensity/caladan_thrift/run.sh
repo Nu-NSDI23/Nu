@@ -30,7 +30,7 @@ do
     start_iokerneld $SRV_IDX    
     sleep 5
     
-    sed "s/\(constexpr uint32_t kDelayNs = \).*/\1 $delay;/g" -i server.cpp
+    sed "s/\(constexpr uint32_t kDelayNs = \).*/\1$delay;/g" -i server.cpp
     make
 
     distribute server $SRV_IDX

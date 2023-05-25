@@ -86,8 +86,10 @@ class Runtime {
   static WeakProclet<T> to_weak_proclet(T *root_obj);
   template <typename T>
   static ProcletHeader *to_proclet_header(T *root_obj);
+  // Attach the current thread to the specified proclet.
+  bool attach(ProcletHeader *proclet_header);
   // Detach the current thread from the current proclet.
-  void detach(const MigrationGuard &g);
+  void detach();
   // Attach the current thread to the specified proclet and disable migration.
   // Return std::nullopt if failed, or MigrationGuard if succeeded.
   // No migration will happen during its invocation.

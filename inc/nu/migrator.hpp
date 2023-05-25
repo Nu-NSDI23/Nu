@@ -120,7 +120,7 @@ class Migrator {
                                   ArchivePool<>::IASStream *ia_sstream);
   void forward_to_client(RPCReqForward &req);
   template <typename RetT>
-  [[nodiscard]] static MigrationGuard migrate_thread_and_ret_val(
+  static void migrate_thread_and_ret_val(
       RPCReturnBuffer &&ret_val_buf, ProcletID dest_id, RetT *dest_ret_val_ptr,
       std::move_only_function<void()> &&cleanup_fn);
   template <typename RetT>

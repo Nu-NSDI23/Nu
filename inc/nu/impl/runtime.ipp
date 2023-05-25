@@ -126,7 +126,7 @@ Runtime::__run_within_proclet_env(void *proclet_base, void (*fn)(A0s...),
 
   auto *obj_ptr = get_current_root_obj<Cls>();
   fn(&migration_guard, obj_ptr, std::forward<A1s>(args)...);
-  detach(migration_guard);
+  detach();
 
   if (unlikely(caladan_->thread_has_been_migrated())) {
     migration_guard.reset();
@@ -170,7 +170,18 @@ inline ProcletHeader *Runtime::to_proclet_header(T *root_obj) {
   return reinterpret_cast<ProcletHeader *>(root_obj) - 1;
 }
 
-inline void Runtime::detach(const MigrationGuard &g) {
+inline bool Runtime::attach(ProcletHeader *new_header) {
+  if (!new_header) {
+    return true;
+  }
+
+  caladan_->thread_set_owner_proclet(caladan_->thread_self(), new_header,
+                                     false);
+  barrier();
+  return new_header->status() >= kPresent;
+}
+
+inline void Runtime::detach() {
   caladan_->thread_unset_owner_proclet(caladan_->thread_self(), true);
 }
 

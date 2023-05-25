@@ -190,7 +190,7 @@ int runtime_main_init(int argc, char **argv,
     {
       auto main_proclet = make_proclet<ErasedType>(
           true, kMainProcletHeapSize, get_runtime()->caladan()->get_ip());
-      main_proclet.__run(
+      main_proclet.__run</* MigrEn = */ false, /* CPUMon = */ false>(
           +[](ErasedType &_, int *argc_p, char ***argv_p,
               std::function<void(int argc, char **argv)> *main_func_p) {
             (*main_func_p)(*argc_p, *argv_p);

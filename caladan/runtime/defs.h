@@ -88,7 +88,7 @@ struct thread_tf {
  * Thread support
  */
 
-#define MAX_NUM_RCUS_HELD       4
+#define MAX_NUM_RCUS_HELD       3
 
 struct stack;
 

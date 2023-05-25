@@ -15,7 +15,7 @@ void Time::timer_callback(unsigned long arg_addr) {
   if (unlikely(!optional_migration_guard)) {
     return;
   }
-  get_runtime()->detach(*optional_migration_guard);
+  get_runtime()->detach();
 
   auto &time = proclet_header->time;
   {

@@ -115,11 +115,11 @@ void ProcletServer::construct_proclet_locally(MigrationGuard &&caller_guard,
   optional_caller_guard = get_runtime()->reattach_and_disable_migration(
       caller_header, callee_guard);
   if (!optional_caller_guard) {
-    get_runtime()->detach(callee_guard);
+    get_runtime()->detach();
     callee_guard.reset();
 
     RPCReturnBuffer return_buf;
-    optional_caller_guard = Migrator::migrate_thread_and_ret_val<void>(
+    Migrator::migrate_thread_and_ret_val<void>(
         std::move(return_buf), to_proclet_id(caller_header), nullptr, nullptr);
   }
 }
@@ -220,11 +220,11 @@ void ProcletServer::update_ref_cnt_locally(MigrationGuard *callee_guard,
   optional_caller_guard = get_runtime()->reattach_and_disable_migration(
       caller_header, *callee_guard);
   if (!optional_caller_guard) {
-    get_runtime()->detach(*callee_guard);
+    get_runtime()->detach();
     callee_guard->reset();
 
     RPCReturnBuffer return_buf;
-    optional_caller_guard = Migrator::migrate_thread_and_ret_val<void>(
+    Migrator::migrate_thread_and_ret_val<void>(
         std::move(return_buf), to_proclet_id(caller_header), nullptr, nullptr);
   }
 }
@@ -232,7 +232,7 @@ void ProcletServer::update_ref_cnt_locally(MigrationGuard *callee_guard,
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
 
-template <bool MigrEn, bool CPUSamp, typename Cls, typename RetT,
+template <bool MigrEn, bool CPUMon, bool CPUSamp, typename Cls, typename RetT,
           typename FnPtr, typename... S1s>
 void ProcletServer::__run_closure(MigrationGuard *callee_guard, Cls *obj,
                                   ArchivePool<>::IASStream *ia_sstream,
@@ -240,10 +240,12 @@ void ProcletServer::__run_closure(MigrationGuard *callee_guard, Cls *obj,
   auto *callee_header = callee_guard->header();
   ProcletSlabGuard callee_slab_guard(&callee_header->slab);
 
-  if constexpr (CPUSamp) {
-    callee_header->cpu_load.start_monitor();
-  } else {
-    callee_header->cpu_load.start_monitor_no_sampling();
+  if constexpr (CPUMon) {
+    if constexpr (CPUSamp) {
+      callee_header->cpu_load.start_monitor();
+    } else {
+      callee_header->cpu_load.start_monitor_no_sampling();
+    }
   }
   callee_header->thread_cnt.inc_unsafe();
 
@@ -283,12 +285,14 @@ void ProcletServer::__run_closure(MigrationGuard *callee_guard, Cls *obj,
   get_runtime()->send_rpc_resp_ok(oa_sstream, ia_sstream, &returner);
 
   callee_header->thread_cnt.dec_unsafe();
-  callee_header->cpu_load.end_monitor();
+  if constexpr (CPUMon) {
+    callee_header->cpu_load.end_monitor();
+  }
 }
 
 #pragma GCC diagnostic pop
 
-template <bool MigrEn, bool CPUSamp, typename Cls, typename RetT,
+template <bool MigrEn, bool CPUMon, bool CPUSamp, typename Cls, typename RetT,
           typename FnPtr, typename... S1s>
 void ProcletServer::run_closure(ArchivePool<>::IASStream *ia_sstream,
                                 RPCReturner *returner) {
@@ -298,7 +302,8 @@ void ProcletServer::run_closure(ArchivePool<>::IASStream *ia_sstream,
   auto *proclet_header = to_proclet_header(id);
 
   bool proclet_not_found = !get_runtime()->run_within_proclet_env<Cls>(
-      proclet_header, __run_closure<MigrEn, CPUSamp, Cls, RetT, FnPtr, S1s...>,
+      proclet_header,
+      __run_closure<MigrEn, CPUMon, CPUSamp, Cls, RetT, FnPtr, S1s...>,
       ia_sstream, *returner);
 
   if (proclet_not_found) {
@@ -306,17 +311,19 @@ void ProcletServer::run_closure(ArchivePool<>::IASStream *ia_sstream,
   }
 }
 
-template <bool MigrEn, bool CPUSamp, typename Cls, typename RetT,
+template <bool MigrEn, bool CPUMon, bool CPUSamp, typename Cls, typename RetT,
           typename FnPtr, typename... Ss>
-MigrationGuard ProcletServer::run_closure_locally(
+void ProcletServer::run_closure_locally(
     MigrationGuard *callee_migration_guard,
     const ProcletSlabGuard &callee_slab_guard, RetT *caller_ptr,
     ProcletHeader *caller_header, ProcletHeader *callee_header, FnPtr fn_ptr,
-    std::unique_ptr<std::tuple<Ss...>> states) {
-  if constexpr (CPUSamp) {
-    callee_header->cpu_load.start_monitor();
-  } else {
-    callee_header->cpu_load.start_monitor_no_sampling();
+    std::tuple<Ss...> &&states) {
+  if constexpr (CPUMon) {
+    if constexpr (CPUSamp) {
+      callee_header->cpu_load.start_monitor();
+    } else {
+      callee_header->cpu_load.start_monitor_no_sampling();
+    }
   }
   callee_header->thread_cnt.inc_unsafe();
 
@@ -333,10 +340,11 @@ MigrationGuard ProcletServer::run_closure_locally(
             new (ret) RetT(fn_ptr(*obj, std::move(states)...));
           }
         },
-        *states);
-    states.reset();
+        std::move(states));
     callee_header->thread_cnt.dec_unsafe();
-    callee_header->cpu_load.end_monitor();
+    if constexpr (CPUMon) {
+      callee_header->cpu_load.end_monitor();
+    }
 
     auto optional_caller_guard = get_runtime()->reattach_and_disable_migration(
         caller_header, *callee_migration_guard);
@@ -345,7 +353,7 @@ MigrationGuard ProcletServer::run_closure_locally(
       *caller_ptr = pass_across_proclet(std::move(*ret));
       std::destroy_at(ret);
       callee_migration_guard->reset();
-      return std::move(*optional_caller_guard);
+      return;
     }
 
     RuntimeSlabGuard slab_guard;
@@ -359,40 +367,36 @@ MigrationGuard ProcletServer::run_closure_locally(
     RPCReturnBuffer ret_val_buf(ret_val_span);
 
     std::destroy_at(ret);
-    get_runtime()->detach(*callee_migration_guard);
+    get_runtime()->detach();
     callee_migration_guard->reset();
-    return Migrator::migrate_thread_and_ret_val<RetT>(
+    Migrator::migrate_thread_and_ret_val<RetT>(
         std::move(ret_val_buf), to_proclet_id(caller_header), caller_ptr,
         [&] { get_runtime()->archive_pool()->put_oa_sstream(oa_sstream); });
+    return;
   } else {
-    std::apply(
-        [&](auto &&...states) {
-          if constexpr (MigrEn) {
-            callee_migration_guard->enable_for(
-                [&] { fn_ptr(*obj, std::move(states)...); });
-          } else {
-            fn_ptr(*obj, std::move(states)...);
-          }
-        },
-        *states);
-    states.reset();
+    callee_migration_guard->reset();
+    std::apply([&](auto &&... states) { fn_ptr(*obj, std::move(states)...); },
+               std::move(states));
     callee_header->thread_cnt.dec_unsafe();
-    callee_header->cpu_load.end_monitor();
+    if constexpr (CPUMon) {
+      callee_header->cpu_load.end_monitor();
+    }
 
-    auto optional_caller_guard = get_runtime()->reattach_and_disable_migration(
-        caller_header, *callee_migration_guard);
-    if (likely(optional_caller_guard)) {
-      callee_migration_guard->reset();
-      return std::move(*optional_caller_guard);
+    auto attached = get_runtime()->attach(caller_header);
+    if (likely(attached)) {
+      return;
     }
 
     RuntimeSlabGuard slab_guard;
     RPCReturnBuffer ret_val_buf;
 
-    get_runtime()->detach(*callee_migration_guard);
-    callee_migration_guard->reset();
-    return Migrator::migrate_thread_and_ret_val<void>(
+    {
+      nu::Caladan::PreemptGuard g;
+      get_runtime()->detach();
+    }
+    Migrator::migrate_thread_and_ret_val<void>(
         std::move(ret_val_buf), to_proclet_id(caller_header), nullptr, nullptr);
+    return;
   }
 }
 

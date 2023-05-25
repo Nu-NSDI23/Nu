@@ -46,11 +46,14 @@ fn main() {
     // to bindgen, and lets you build up options for
     // the resulting bindings.
     let bindings = bindgen::Builder::default()
-        .blacklist_type("IPPORT_.*")
         .clang_arg("-I../../inc/")
         // The input header we would like to generate
         // bindings for.
         .header("shenango.h")
+        .blocklist_function("q.cvt(_r)?")
+        .blocklist_function("strtold")
+        .blocklist_item("IPPORT_.*")
+        .generate_comments(false)
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.

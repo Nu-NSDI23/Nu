@@ -1,14 +1,13 @@
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
-#![feature(llvm_asm)]
-#![feature(integer_atomics)]
 #![feature(thread_local)]
 #![feature(new_uninit)]
 #![feature(get_mut_unchecked)]
 
 extern crate byteorder;
 
+use std::arch::asm;
 use std::cell::UnsafeCell;
 use std::ffi::CString;
 use std::mem;
@@ -17,6 +16,9 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+// https://github.com/rust-lang/rust-bindgen/issues/1651
+#[allow(deref_nullptr)]
+#[allow(unaligned_references)]
 pub mod ffi {
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }
@@ -27,7 +29,7 @@ pub mod tcp;
 pub mod thread;
 pub mod udp;
 
-pub use asm::*;
+pub use crate::asm::*;
 
 fn convert_error(ret: c_int) -> Result<(), i32> {
     if ret == 0 {
@@ -40,8 +42,8 @@ fn convert_error(ret: c_int) -> Result<(), i32> {
 #[inline]
 pub fn preempt_enable() {
     unsafe {
-        llvm_asm!("" ::: "memory" : "volatile");
-        llvm_asm!("subl $$1, %fs:preempt_cnt@tpoff" : : : "memory", "cc" : "volatile");
+        std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
+        asm!("dec DWORD PTR fs:{0}@TPOFF", sym ffi::preempt_cnt);
         if ffi::preempt_cnt == 0 {
             ffi::preempt();
         }
@@ -51,8 +53,8 @@ pub fn preempt_enable() {
 #[inline]
 pub fn preempt_disable() {
     unsafe {
-        llvm_asm!("addl $$1, %fs:preempt_cnt@tpoff" : : : "memory", "cc" : "volatile");
-        llvm_asm!("" ::: "memory" : "volatile");
+        asm!("inc DWORD PTR fs:{0}@TPOFF", sym ffi::preempt_cnt);
+        std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
     }
 }
 
@@ -77,7 +79,7 @@ pub fn microtime() -> u64 {
 
 pub fn sleep(duration: Duration) {
     unsafe {
-        ffi::timer_sleep(duration.as_secs() * 1000_000 + duration.subsec_nanos() as u64 / 1000)
+        ffi::timer_sleep(duration.as_secs() * 1_000_000 + duration.subsec_nanos() as u64 / 1000)
     }
 }
 
@@ -99,6 +101,7 @@ where
 pub struct WaitGroup {
     inner: Arc<ffi::waitgroup>,
 }
+
 impl WaitGroup {
     pub fn new() -> Self {
         let mut inner_uninit = Arc::new_uninit();
@@ -116,12 +119,20 @@ impl WaitGroup {
         self.add(-1)
     }
 }
+
+impl Default for WaitGroup {
+    fn default() -> Self {
+        WaitGroup::new()
+    }
+}
+
 unsafe impl Send for WaitGroup {}
 unsafe impl Sync for WaitGroup {}
 
 pub struct SpinLock {
     inner: UnsafeCell<ffi::spinlock_t>,
 }
+
 impl SpinLock {
     pub fn new() -> Self {
         Self {
@@ -129,6 +140,7 @@ impl SpinLock {
         }
     }
 
+    #[allow(clippy::mut_from_ref)]
     #[inline]
     unsafe fn as_atomic(&self) -> &mut AtomicI32 {
         mem::transmute(&mut (*self.inner.get()).locked)
@@ -173,6 +185,13 @@ impl SpinLock {
         assert_eq!(inner.swap(0, Ordering::Release), 1);
     }
 }
+
+impl Default for SpinLock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 unsafe impl Send for SpinLock {}
 unsafe impl Sync for SpinLock {}
 

@@ -11,10 +11,12 @@ include $(ROOT_PATH)/build/config
 INC = -I$(ROOT_PATH)/inc
 FLAGS  = -g -Wall -D_GNU_SOURCE $(INC)
 LDFLAGS = -T $(ROOT_PATH)/base/base.ld
-LD      = gcc-13
-CC      = gcc-13
-LDXX	= g++-13
-CXX	= g++-13
+GCC     ?= gcc-13
+GXX     ?= g++-13
+LD      = $(GCC)
+CC      = $(GCC)
+LDXX	= $(GXX)
+CXX	= $(GXX)
 AR      = ar
 SPARSE  = sparse
 
@@ -43,11 +45,14 @@ FLAGS += -DDEBUG -rdynamic -O0 -ggdb -mssse3
 LDFLAGS += -rdynamic
 else
 FLAGS += -DNDEBUG -O3
+endif
 ifeq ($(CONFIG_OPTIMIZE),y)
-FLAGS += -march=native -flto=auto -ffast-math
+FLAGS += -march=native -ffast-math
 else
 FLAGS += -mssse3
 endif
+ifeq ($(CONFIG_LTO),y)
+FLAGS += -flto=auto
 endif
 ifeq ($(CONFIG_MLX5),y)
 FLAGS += -DMLX5

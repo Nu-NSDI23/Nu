@@ -31,11 +31,13 @@ function probe_num_nodes() {
 function cleanup() {
     for i in `seq 1 $num_nodes`
     do
-	ssh $(ssh_ip $i) "sudo pkill -9 iokerneld; \
+	ssh $(ssh_ip $i) "sudo pkill -9 iokerneld;
                           sudo pkill -9 ctrl_main;
                           sudo pkill -9 main;
                           sudo pkill -9 client;
-                          sudo pkill -9 server;"
+                          sudo pkill -9 server;
+                          sudo pkill -9 synthetic;
+                          sudo pkill -9 memcached;"
     done
 }
 
@@ -84,6 +86,12 @@ function run_program() {
     srv_idx=$2
     args=${@:3}
     ssh $(ssh_ip $srv_idx) "sudo $file_full_path $args"
+}
+
+function run_cmd() {
+    srv_idx=$1
+    cmd=${@:2}
+    ssh $(ssh_ip $srv_idx) "$cmd"
 }
 
 function distribute() {

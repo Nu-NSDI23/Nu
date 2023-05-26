@@ -96,9 +96,9 @@ DistributedHashTable<K, V, Hash, KeyEqual, NumBuckets>::get(K1 &&k,
   auto key_hash = hash(std::forward<K1>(k));
   auto shard_idx = get_shard_idx(key_hash);
   auto &shard = shards_[shard_idx];
-  return shard.__run_and_get_loc(
-      is_local, &HashTableShard::template get_copy_with_hash<K>,
-      std::forward<K1>(k), key_hash);
+  *is_local = shard.is_local();
+  return shard.__run(&HashTableShard::template get_copy_with_hash<K>,
+                     std::forward<K1>(k), key_hash);
 }
 
 template <typename K, typename V, typename Hash, typename KeyEqual,

@@ -21,7 +21,7 @@
 constexpr uint32_t kKeyLen = 20;
 constexpr uint32_t kValLen = 2;
 constexpr double kLoadFactor = 0.20;
-constexpr uint32_t kNumProxies = 7;
+constexpr uint32_t kNumProxies = 1;
 constexpr uint32_t kProxyPort = 10086;
 
 struct Key {

@@ -37,11 +37,11 @@
 #include "tbb/scalable_allocator.h"
 #endif
 
-#define DEF_NUM_POINTS 20000
+#define DEF_NUM_POINTS 1000000
 #define DEF_NUM_MEANS 1000
-#define DEF_DIM 1000
+#define DEF_DIM 400
 #define DEF_GRID_SIZE (8ULL << 32)
-#define NCORES 32
+#define NCORES 48
 
 using namespace std;
 using Data_t = long long;

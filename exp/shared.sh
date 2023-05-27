@@ -37,7 +37,8 @@ function cleanup() {
                           sudo pkill -9 client;
                           sudo pkill -9 server;
                           sudo pkill -9 synthetic;
-                          sudo pkill -9 memcached;"
+                          sudo pkill -9 memcached;
+                          sudo pkill -9 kmeans;"
     done
 }
 

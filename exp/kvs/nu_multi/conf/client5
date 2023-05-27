@@ -1,4 +1,4 @@
-host_addr 18.18.1.4
+host_addr 18.18.1.105
 host_netmask 255.255.255.0
 host_gateway 18.18.1.1
 host_mtu 9000

@@ -103,6 +103,8 @@ function distribute() {
 
 function prepare() {
     probe_num_nodes
+    cleanup
+    sleep 5
     for i in `seq 1 $num_nodes`
     do
 	ssh $(ssh_ip $i) "cd $NU_DIR; sudo ./setup.sh" &
@@ -114,7 +116,6 @@ trap force_cleanup INT
 trap cleanup EXIT
 
 prepare
-cleanup
 sleep 5
 
 rm -rf logs.bak

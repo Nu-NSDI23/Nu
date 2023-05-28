@@ -3,14 +3,14 @@
 source ../../../shared.sh
 
 DIR=`pwd`
+PHOENIX_DIR=$DIR/../../../../app/phoenix++-1.0/orig/
 
-cd ../../../../app/phoenix++-1.0/orig/
-cp tests/kmeans/kmeans_global.cpp tests/kmeans/kmeans.cpp
+cp kmeans_global.cpp $PHOENIX_DIR/tests/kmeans/kmeans.cpp
+cd $PHOENIX_DIR
 make clean
 make -j
 cd tests/kmeans
 
-#for num_threads in `seq 1 46`
 for num_threads in `seq 1 46`
 do
     export MR_NUMTHREADS=$num_threads

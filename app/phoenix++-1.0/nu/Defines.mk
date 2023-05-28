@@ -35,17 +35,18 @@ OS = -D_CYGWIN_
 endif
 
 ifeq ($(OSTYPE),Linux)
-CXX = g++-11
+CXX = g++-13
 OS = -D_LINUX_
 DEBUG = -g
 #NUMA = -DNUMA_SUPPORT
 NCORES = $(shell nproc)
-NU = ../../../../
+NU = ../../../../../
 CALADAN = $(NU)/caladan
-CFLAGS = $(DEBUG) -Wall -O3 $(OS) $(NUMA) -DMMAP_POPULATE -fstrict-aliasing -Wstrict-aliasing -march=native -std=c++20 \
-         -DNCORES=$(NCORES) -T ${CALADAN}/base/base.ld -static -static-libstdc++ -static-libgcc
-LIBS = -L${NU}/glibc/build/install/lib -L${CALADAN} -L${CALADAN}/bindings/cc -L${CALADAN}/rdma-core/build/lib/statics/ \
-       -L${NU} -lnu -lrt++ -lruntime -lnet -lbase -lmlx5 -libverbs -lnl-3 -lnl-route-3 -lcrypto -lpthread -ldl -lpthread -lrt
+CFLAGS = $(DEBUG) -Wall -O3 $(OS) $(NUMA) -DMMAP_POPULATE -fstrict-aliasing -Wstrict-aliasing -march=native -std=c++23 \
+         -DNCORES=$(NCORES) -T ${CALADAN}/base/base.ld
+LIBS = -L${CALADAN} -L${CALADAN}/bindings/cc -L${CALADAN}/rdma-core/build/lib/ -L${CALADAN}/rdma-core/build/lib/statics/ \
+       -L${NU} -lnu -lrt++ -lruntime -lnet -lbase -l:libmlx5.a -l:libibverbs.a -lnl-3 -lnl-route-3 -lcrypto \
+       -lboost_program_options -lpthread -lnuma -ldl
 INC =  -I../../include -I$(NU)/inc -I$(CALADAN)/inc -I$(CALADAN)/bindings/cc
 endif
 

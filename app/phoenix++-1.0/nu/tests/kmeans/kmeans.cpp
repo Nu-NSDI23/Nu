@@ -25,7 +25,6 @@
  */
 
 #include <algorithm>
-#include <array>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
@@ -34,20 +33,26 @@
 #include <limits>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <vector>
 
 #include "map_reduce.h"
 
-constexpr int kNumPoints = 10000; // Number of vectors
-constexpr int kDim = 3;           // Dimension of each vector
-constexpr int kNumMeans = 100;    // Number of clusters
-constexpr int kGridSize = 1000;   // Size of each dimension of vector space
-constexpr bool kDumpResult = false;
+using Data_t = int64_t;
 
-constexpr int kNumWorkerNodes = 1;
+// Number of vectors
+constexpr int kNumPoints = 1000000;
+// Dimension of each vector
+constexpr int kDim = 400;
+// Number of clusters
+constexpr int kNumMeans = 1000;
+// Size of each dimension of vector space
+constexpr Data_t kGridSize = 8ULL << 32;
+constexpr bool kDumpResult = false;
 constexpr int kNumWorkerThreads = 1;
+constexpr int kChunkSize = 6;
 
 struct point {
-  int d[kDim];
+  Data_t d[kDim];
   int cluster; // cluster point count (for means)
 
   template <class Archive> void serialize(Archive &ar) { ar(d, cluster); }
@@ -56,7 +61,7 @@ struct point {
 
   point(int cluster) { this->cluster = cluster; }
 
-  point(int *d, int cluster) {
+  point(Data_t *d, int cluster) {
     memcpy(this->d, d, sizeof(this->d));
     this->cluster = cluster;
   }
@@ -68,10 +73,10 @@ struct point {
     return *this;
   }
 
-  unsigned int sq_dist(point const &p) {
-    unsigned int sum = 0;
+  Data_t sq_dist(point const &p) {
+    Data_t sum = 0;
     for (int i = 0; i < kDim; i++) {
-      int diff = d[i] - p.d[i];
+      Data_t diff = d[i] - p.d[i];
       sum += diff * diff;
     }
     return sum;
@@ -79,7 +84,7 @@ struct point {
 
   void dump() {
     for (int j = 0; j < kDim; j++)
-      printf("%5d ", d[j]);
+      printf("%5lld ", static_cast<long long>(d[j]));
     printf("\n");
   }
 
@@ -93,7 +98,7 @@ struct point {
   }
 };
 
-std::array<point, kNumPoints> points;
+std::vector<point> points;
 
 template <class V, template <class> class Allocator>
 class point_combiner
@@ -120,50 +125,34 @@ public:
 
   KmeansMR() {}
 
-  KmeansMR(uint64_t num_worker_nodes, uint64_t num_worker_threads)
-      : MapReduce(num_worker_nodes, num_worker_threads) {}
+  KmeansMR(uint64_t num_worker_threads) : MapReduce(num_worker_threads) {}
 
   void map(data_type &task_id, map_container &out) const {
-    unsigned int min_dist = std::numeric_limits<unsigned int>::max();
+    Data_t min_dist = std::numeric_limits<Data_t>::max();
     uint64_t min_idx = 0;
     auto &p = points[task_id];
 
     for (size_t j = 0; j < means.size(); j++) {
-      unsigned int cur_dist = p.sq_dist(means[j]);
+      Data_t cur_dist = p.sq_dist(means[j]);
       if (cur_dist < min_dist) {
         min_dist = cur_dist;
         min_idx = j;
       }
     }
-
     emit_intermediate(out, min_idx, point(p.d, 1));
   }
 };
 
 void real_main(int argc, char **argv) {
-  srand(0);
-
-  std::vector<point> generated_points(kNumPoints);
-  for (int i = 0; i < kNumPoints; i++) {
-    generated_points[i].generate();
-  }
-
-  std::vector<point> means;
+  std::vector<point> local_means;
   for (int i = 0; i < kNumMeans; i++) {
-    means.emplace_back(0);
-    means[i].generate();
+    local_means.emplace_back(0);
+    local_means[i].generate();
   }
 
   printf("KMeans: Calling MapReduce Scheduler\n");
 
-  KmeansMR mapReduce(kNumWorkerNodes, kNumWorkerThreads);
-
-  mapReduce.for_all_worker_nodes(
-      +[](std::vector<point> generated_points) {
-        std::copy(generated_points.begin(), generated_points.end(),
-                  points.begin());
-      },
-      generated_points);
+  KmeansMR mapReduce(kNumWorkerThreads);
 
   std::vector<task_id> tasks;
   for (int i = 0; i < kNumPoints; i++) {
@@ -174,24 +163,34 @@ void real_main(int argc, char **argv) {
   int iter = 0;
   do {
     std::cout << "iter = " << iter++ << std::endl;
+
+    auto t0 = microtime();
+
     mapReduce.for_all_worker_threads(
-        +[](KmeansMR &mr, std::vector<point> means) {
-          mr.means = std::move(means);
+        +[](KmeansMR &mr, std::vector<point> src_means) {
+          mr.means = std::move(src_means);
         },
-        means);
+        local_means);
+
+    auto t1 = microtime();
 
     std::vector<KmeansMR::keyval> result;
-    BUG_ON(mapReduce.run(tasks.data(), kNumPoints, result) < 0);
+    BUG_ON(mapReduce.run(tasks.data(), kNumPoints, result, kChunkSize) < 0);
+
+    auto t2 = microtime();
 
     modified = false;
     for (size_t i = 0; i < result.size(); i++) {
       auto new_mean = result[i].val.normalize();
-      auto &mean = means[result[i].key];
+      auto &mean = local_means[result[i].key];
       if (mean != new_mean) {
         modified = true;
         mean = new_mean;
       }
     }
+
+    auto t3 = microtime();
+    std::cout << t1 - t0 << " " << t2 - t1 << " " << t3 - t2 << std::endl;
   } while (modified);
 
   printf("KMeans: MapReduce Completed\n");
@@ -199,11 +198,16 @@ void real_main(int argc, char **argv) {
   if constexpr (kDumpResult) {
     printf("\n\nFinal means:\n");
     for (int i = 0; i < kNumMeans; i++)
-      means[i].dump();
+      local_means[i].dump();
   }
 }
 
 int main(int argc, char **argv) {
+  srand(0);
+  for (int i = 0; i < kNumPoints; i++) {
+    points.emplace_back();
+    points.back().generate();
+  }
   nu::runtime_main_init(argc, argv,
                         [](int argc, char **argv) { real_main(argc, argv); });
 }

@@ -33,8 +33,7 @@ include $(HOME)/Defines.mk
 
 .PHONY: default all clean
 
-APPS := matrix_multiply \
-        kmeans
+APPS := kmeans
 
 default: all
 

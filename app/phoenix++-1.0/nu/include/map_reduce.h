@@ -104,18 +104,24 @@ protected:
 public:
   MapReduce() {}
 
-  MapReduce(uint64_t num_worker_threads)
-      : hash_table(new HashTable(nu::bsr_64(num_worker_threads - 1) + 1)) {
+  MapReduce(uint64_t num_worker_threads) {
+    auto ht = nu::make_dis_hash_table<
+        K, typename Combiner<V, std::allocator>::combined, Hash,
+        std::equal_to<K>, kDefaultNumBucketsPerHashTableShard>(
+        nu::bsr_64(num_worker_threads - 1) + 1);
     for (uint64_t i = 0; i < num_worker_threads; i++) {
-      worker_threads.emplace_back(nu::RemObj<Impl>::create());
+      worker_threads.emplace_back(nu::make_proclet<Impl>());
       worker_threads.back().run(
-          +[](Impl &impl, HashTable::Cap cap) { impl.init(cap); },
-          hash_table->get_cap());
+          +[](Impl &impl, HashTable hash_table) {
+            impl.init(std::move(hash_table));
+          },
+          ht);
     }
+    hash_table.reset(new HashTable(std::move(ht)));
   }
 
-  void init(HashTable::Cap cap) {
-    hash_table.reset(new HashTable(cap));
+  void init(HashTable ht) {
+    hash_table.reset(new HashTable(std::move(ht)));
     map_container_ptr.reset(new map_container());
   }
 
@@ -149,7 +155,7 @@ public:
 
 private:
   std::unique_ptr<HashTable> hash_table;
-  std::vector<nu::RemObj<Impl>> worker_threads;
+  std::vector<nu::Proclet<Impl>> worker_threads;
   std::unique_ptr<map_container> map_container_ptr;
 
   void map_chunk(std::vector<data_type> data_chunk);
@@ -242,8 +248,8 @@ void MapReduce<Impl, D, K, V, Combiner, Hash>::__run_map(data_type *data,
       }
     }
 
-    auto *general_worker_thread =
-        reinterpret_cast<nu::RemObj<MapReduce> *>(&worker_threads[dispatch_id]);
+    auto *general_worker_thread = reinterpret_cast<nu::Proclet<MapReduce> *>(
+        &worker_threads[dispatch_id]);
     futures[dispatch_id] =
         general_worker_thread->run_async(&MapReduce::map_chunk, data_chunk);
   }
@@ -333,7 +339,7 @@ void MapReduce<Impl, D, K, V, Combiner, Hash>::run_reduce() {
   futures.reserve(worker_threads.size());
   for (auto &worker_thread : worker_threads) {
     auto *general_worker_thread =
-        reinterpret_cast<nu::RemObj<MapReduce> *>(&worker_thread);
+        reinterpret_cast<nu::Proclet<MapReduce> *>(&worker_thread);
     futures.emplace_back(general_worker_thread->run_async(&MapReduce::shuffle));
   }
   for (auto &future : futures) {
@@ -391,33 +397,37 @@ template <typename Impl, typename D, typename K, typename V,
 template <typename... S0s, typename... S1s>
 void MapReduce<Impl, D, K, V, Combiner, Hash>::for_all_worker_threads(
     void (*fn)(Impl &, S0s...), S1s &&... states) {
-  using ImplCap = nu::RemObj<Impl>::Cap;
-  std::unordered_map<uint32_t, std::vector<ImplCap>> ip_to_caps;
+  nu::MigrationGuard g;
+  std::unordered_map<uint32_t, std::vector<nu::WeakProclet<Impl>>>
+      ip_to_proclets;
+
+  auto *rpc_client_mgr = nu::get_runtime()->rpc_client_mgr();
   for (auto &worker_thread : worker_threads) {
-    auto cap = worker_thread.get_cap();
-    auto ip = nu::Runtime::get_ip_by_rem_obj_id(cap.id);
-    ip_to_caps[ip].push_back(cap);
+    auto ip = rpc_client_mgr->get_ip_by_proclet_id(worker_thread.get_id());
+    ip_to_proclets[ip].push_back(worker_thread.get_weak());
   }
 
   auto fn_addr = reinterpret_cast<uintptr_t>(fn);
   std::vector<nu::Future<std::vector<uint32_t>>> fn_futures;
 
-  for (auto &[_, caps] : ip_to_caps) {
-    BUG_ON(caps.empty());
-    fn_futures.emplace_back(nu::async([&, caps] {
-      nu::RemObj<Impl> worker_thread(caps.front(), /* ref_cnted = */ false);
+  for (auto &[_, proclets] : ip_to_proclets) {
+    BUG_ON(proclets.empty());
+    fn_futures.emplace_back(nu::async([&, proclets]() mutable {
+      auto &worker_thread = proclets.front();
       return worker_thread.run(
-          +[](Impl &_, std::vector<ImplCap> caps, uintptr_t fn_addr,
-              S0s... states) {
+          +[](Impl &_, std::vector<nu::WeakProclet<Impl>> proclets,
+              uintptr_t fn_addr, S0s... states) {
             auto *fn = reinterpret_cast<void (*)(Impl &, S0s...)>(fn_addr);
             std::vector<nu::Future<uint32_t>> futures;
             std::vector<uint32_t> ips;
 
-            for (auto cap : caps) {
-              futures.emplace_back(nu::async([&, cap] {
-                nu::RemObj<Impl> worker_thread(cap);
+            for (auto worker_thread : proclets) {
+              futures.emplace_back(nu::async([&, worker_thread]() mutable {
                 worker_thread.run(fn, states...);
-                return nu::Runtime::get_ip_by_rem_obj_id(cap.id);
+		nu::MigrationGuard g;
+                return nu::get_runtime()
+                    ->rpc_client_mgr()
+                    ->get_ip_by_proclet_id(worker_thread.get_id());
               }));
             }
 
@@ -426,20 +436,21 @@ void MapReduce<Impl, D, K, V, Combiner, Hash>::for_all_worker_threads(
             }
             return ips;
           },
-          caps, fn_addr, std::forward<S1s>(states)...);
+          proclets, fn_addr, std::forward<S1s>(states)...);
     }));
   }
 
   std::vector<nu::Future<void>> update_loc_futures;
-  for (auto fn_future_iter = fn_futures.begin(), cap_iter = ip_to_caps.begin();
-       fn_future_iter < fn_futures.end(); fn_future_iter++, cap_iter++) {
+  for (auto fn_future_iter = fn_futures.begin(),
+            proclet_iter = ip_to_proclets.begin();
+       fn_future_iter < fn_futures.end(); fn_future_iter++, proclet_iter++) {
     auto &ips = fn_future_iter->get();
-    auto &caps = cap_iter->second;
+    auto &proclets = proclet_iter->second;
     for (size_t i = 0; i < ips.size(); i++) {
       auto ip = ips[i];
-      auto cap = caps[i];
-      if (unlikely(ip != nu::Runtime::get_ip_by_rem_obj_id(cap.id))) {
-        nu::RemObj<Impl> worker_thread(cap, /* ref_cnted = */ false);
+      auto worker_thread = proclets[i];
+      if (unlikely(ip != rpc_client_mgr->get_ip_by_proclet_id(
+                             worker_thread.get_id()))) {
         update_loc_futures.emplace_back(
             worker_thread.run_async(+[](Impl &_) {}));
       }

@@ -22,9 +22,9 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
 constexpr static uint32_t kNumThreads = 200;
-constexpr static double kTargetMops = 0.009;
+constexpr static double kTargetMops = 0.003;
 constexpr static double kTotalMops = 1.0;
-constexpr static char kHostIP[] = "10.10.1.7";
+constexpr static char kHostIP[] = "10.10.1.1";
 constexpr static uint32_t kUserTimeLinePort = 10003;
 constexpr static uint32_t kHomeTimeLinePort = 10010;
 constexpr static uint32_t kComposePostPort = 10001;

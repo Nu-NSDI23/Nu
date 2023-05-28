@@ -1,4 +1,4 @@
-set(NU_DIR ../../../../../)
+set(NU_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../)
 set(CALADAN_DIR ${NU_DIR}/caladan/)
 set(CMAKE_EXE_LINKER_FLAGS "-T ${CALADAN_DIR}/base/base.ld")
 
@@ -28,6 +28,7 @@ target_link_directories(
     client_swarm PRIVATE
     ${CALADAN_DIR}
     ${CALADAN_DIR}/bindings/cc
+    ${CALADAN_DIR}/rdma-core/build/lib/
     ${CALADAN_DIR}/rdma-core/build/lib/statics/
     ${NU_DIR}
 )

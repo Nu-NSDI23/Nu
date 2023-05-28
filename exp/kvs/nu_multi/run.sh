@@ -45,6 +45,7 @@ do
 	then
 	    start_server server $srv_idx $LPID &
 	else
+	    sleep 5
 	    start_main_server server $srv_idx $LPID >logs/.tmp &
 	fi
     done

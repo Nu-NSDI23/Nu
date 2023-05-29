@@ -64,7 +64,6 @@ do
 
     run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; ./down.sh"
     run_cmd $NGINX_SRV_IDX 'docker rm -vf $(docker ps -aq)'
-    run_cmd $NGINX_SRV_IDX 'docker rmi -f $(docker images -aq)'
     run_cmd $NGINX_SRV_IDX "docker volume prune -f"
     cleanup
     sleep 5

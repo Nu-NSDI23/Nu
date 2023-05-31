@@ -19,7 +19,7 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
 constexpr static uint32_t kNumThreads = 200;
-constexpr static double kTargetMops = 0.6;
+constexpr static double kTargetMops = 0.1;
 constexpr static double kTotalMops = 1;
 constexpr static uint32_t kNumEntryObjs = 1;
 const static std::string kEntryObjIps[] = {
@@ -28,8 +28,8 @@ const static std::string kEntryObjIps[] = {
 constexpr static uint32_t kEntryObjPort = 9091;
 constexpr static uint32_t kUserTimelinePercent = 60;
 constexpr static uint32_t kHomeTimelinePercent = 30;
-constexpr static uint32_t kComposePostPercent = 10;
-constexpr static uint32_t kRemovePostsPercent = 0;
+constexpr static uint32_t kComposePostPercent = 5;
+constexpr static uint32_t kRemovePostsPercent = 5;
 constexpr static uint32_t kFollowPercent =
     100 - kUserTimelinePercent - kHomeTimelinePercent - kComposePostPercent -
     kRemovePostsPercent;

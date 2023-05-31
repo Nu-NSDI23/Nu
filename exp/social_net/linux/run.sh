@@ -35,11 +35,14 @@ run_cmd $NGINX_SRV_IDX "$SET_NIC_CMD"
 run_cmd $NGINX_SRV_IDX "sudo apt-get update; sudo apt-get install -y python3-pip; pip3 install aiohttp"
 run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; ./install_docker.sh"
 
-run_cmd $NGINX_SRV_IDX "echo N | sudo mkfs.ext4 $DISK_DEV;
+run_cmd $NGINX_SRV_IDX "sudo service docker stop;
+                        echo N | sudo mkfs.ext4 $DISK_DEV;
                         sudo umount /mnt;
                         sudo mount $DISK_DEV /mnt;
                         sudo mkdir /mnt/docker;
-                        sudo mount --rbind /mnt/docker /var/lib/docker;"
+                        sudo mount --rbind /mnt/docker /var/lib/docker;
+                        sudo rm -rf /var/lib/docker/*;
+                        sudo service docker start;"
 
 mops=( 0.002 0.003 0.005 0.007 0.009 )
 

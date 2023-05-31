@@ -6,7 +6,7 @@ CALADAN_DIR=$NU_DIR/caladan
 
 function ssh_ip() {
     srv_idx=$1
-    echo "10.10.2."$srv_idx
+    echo "10.10.1."$srv_idx
 }
 
 function caladan_srv_ip() {
@@ -19,7 +19,7 @@ function probe_num_nodes() {
     while true
     do
     	next_node=$(($num_nodes + 1))
-    	ping -c 1 $(ssh_ip $next_node) 1>/dev/null 2>&1
+	ping -c 1 $(ssh_ip $next_node) 1>/dev/null 2>&1
     	if [ $? != 0 ]
     	then
     	    break
@@ -60,16 +60,15 @@ function start_ctrl() {
 
 function __start_server() {
     file_path=$1
-    file_full_path=$(readlink -f $file_path)
     srv_idx=$2
     lpid=$3
     main=$4
     ip=$(caladan_srv_ip $srv_idx)
     if [[ $main -eq 0 ]]
     then
-	ssh $(ssh_ip $srv_idx) "sudo $file_full_path -l $lpid -i $ip"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo $file_path -l $lpid -i $ip"
     else
-	ssh $(ssh_ip $srv_idx) "sudo $file_full_path -m -l $lpid -i $ip"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo $file_path -m -l $lpid -i $ip"
     fi
 }
 
@@ -83,16 +82,15 @@ function start_main_server() {
 
 function run_program() {
     file_path=$1
-    file_full_path=$(readlink -f $file_path)
     srv_idx=$2
     args=${@:3}
-    ssh $(ssh_ip $srv_idx) "sudo $file_full_path $args"
+    ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo $file_path $args"
 }
 
 function run_cmd() {
     srv_idx=$1
     cmd=${@:2}
-    ssh $(ssh_ip $srv_idx) "$cmd"
+    ssh $(ssh_ip $srv_idx) "cd `pwd`; $cmd"
 }
 
 function distribute() {

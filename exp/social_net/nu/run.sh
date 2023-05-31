@@ -15,6 +15,7 @@ NGINX_SRV_CALADAN_IP_AND_MASK=18.18.1.254/24
 DIR=`pwd`
 SOCIAL_NET_DIR=$DIR/../../../app/socialNetwork/single_obj/
 
+cp client.cpp $SOCIAL_NET_DIR/bench
 cd $SOCIAL_NET_DIR
 ./build.sh
 
@@ -59,7 +60,7 @@ do
 
     start_main_server build/src/main $BACKEND_SRV_IDX $LPID >$DIR/logs/.tmp &
     ( tail -f -n0 $DIR/logs/.tmp & ) | grep -q "Starting the ThriftBackEndServer"
-    sleep 2
+    sleep 5
 
     run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; python3 scripts/init_social_graph.py"
     sleep 5

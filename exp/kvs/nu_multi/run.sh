@@ -41,7 +41,7 @@ do
 	srv_idx=$(get_srv_idx $i)
 	distribute server $srv_idx
 
-	if [[ $i -ne num_srvs ]]
+	if [[ $i -ne $num_srvs ]]
 	then
 	    start_server server $srv_idx $LPID &
 	else

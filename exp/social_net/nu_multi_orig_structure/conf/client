@@ -1,7 +1,6 @@
 host_addr 18.18.1.253
 host_netmask 255.255.255.0
 host_gateway 18.18.1.1
-host_mac 1E:CF:16:43:AF:98
 host_mtu 9000
 runtime_kthreads 46
 runtime_guaranteed_kthreads 0

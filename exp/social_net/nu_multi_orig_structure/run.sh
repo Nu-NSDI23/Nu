@@ -82,7 +82,7 @@ do
     run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; python3 scripts/init_social_graph.py"
     sleep 5
 
-    run_program build/bench/client $CLT_IDX $DIR/conf/client2 1>$DIR/logs/$num_srvs 2>&1
+    run_program build/bench/client $CLT_IDX $DIR/conf/client 1>$DIR/logs/$num_srvs 2>&1
 
     cleanup
     sleep 5

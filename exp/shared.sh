@@ -39,7 +39,8 @@ function cleanup() {
                           sudo pkill -9 synthetic;
                           sudo pkill -9 memcached;
                           sudo pkill -9 kmeans;
-                          sudo pkill -9 python3;"
+                          sudo pkill -9 python3;
+                          sudo pkill -9 BackEndService;"
     done
 }
 

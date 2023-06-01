@@ -13,7 +13,7 @@ CLT_IDX=4
 NGINX_SRV_CALADAN_IP_AND_MASK=18.18.1.254/24
 
 DIR=`pwd`
-SOCIAL_NET_DIR=$DIR/../../../app/socialNetwork/single_obj/
+SOCIAL_NET_DIR=$DIR/../../../app/socialNetwork/single_proclet/
 
 cp client.cpp $SOCIAL_NET_DIR/bench
 cd $SOCIAL_NET_DIR

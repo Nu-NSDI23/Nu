@@ -6,9 +6,10 @@
 namespace social_network {
 
 UserTimelineService::UserTimelineService(
-    nu::RemObj<PostStorageService>::Cap cap)
-    : _post_storage_service_obj(cap),
-      _userid_to_timeline_map(kDefaultHashTablePowerNumShards) {}
+    nu::Proclet<PostStorageService> proclet)
+    : _post_storage_service(std::move(proclet)),
+      _userid_to_timeline_map(nu::make_dis_hash_table<int64_t, Tree, I64Hasher>(
+          kDefaultHashTablePowerNumShards)) {}
 
 void UserTimelineService::WriteUserTimeline(int64_t post_id, int64_t user_id,
                                             int64_t timestamp) {
@@ -39,8 +40,7 @@ std::vector<Post> UserTimelineService::ReadUserTimeline(int64_t user_id,
         return post_ids;
       },
       start, stop);
-  return _post_storage_service_obj.run(&PostStorageService::ReadPosts,
-                                       post_ids);
+  return _post_storage_service.run(&PostStorageService::ReadPosts, post_ids);
 }
 
 void UserTimelineService::RemovePost(int64_t user_id, int64_t post_id,

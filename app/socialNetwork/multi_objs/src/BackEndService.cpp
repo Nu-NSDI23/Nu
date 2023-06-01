@@ -1,16 +1,18 @@
-#include <future>
-#include <iostream>
-#include <mutex>
-#include <nlohmann/json.hpp>
-#include <nu/runtime.hpp>
-#include <string>
+#include "../gen-cpp/BackEndService.h"
+
 #include <thread.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/server/TThreadedServer.h>
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TServerSocket.h>
 
-#include "../gen-cpp/BackEndService.h"
+#include <future>
+#include <iostream>
+#include <mutex>
+#include <nlohmann/json.hpp>
+#include <nu/runtime.hpp>
+#include <string>
+
 #include "States.hpp"
 #include "utils.h"
 
@@ -19,15 +21,15 @@ using apache::thrift::server::TThreadedServer;
 using apache::thrift::transport::TFramedTransportFactory;
 using apache::thrift::transport::TServerSocket;
 
-constexpr static uint32_t kNumEntryObjs = 1;
+constexpr static uint32_t kNumEntries = 1;
 
 namespace social_network {
 
 using json = nlohmann::json;
 
 class BackEndHandler : public BackEndServiceIf {
-public:
-  BackEndHandler(const StateCaps &cap);
+ public:
+  BackEndHandler(States states);
   ~BackEndHandler() override = default;
 
   void RemovePosts(int64_t user_id, int start, int stop);
@@ -63,16 +65,16 @@ public:
                    const std::string &data) override;
   void GetMedia(std::string &_return, const std::string &filename) override;
 
-private:
+ private:
   States _states;
 };
 
-BackEndHandler::BackEndHandler(const StateCaps &caps) : _states(caps) {}
+BackEndHandler::BackEndHandler(States states) : _states(std::move(states)) {}
 
 void BackEndHandler::RemovePosts(int64_t user_id, int start, int stop) {
-  auto posts_future = _states.user_timeline_service_obj.run_async(
+  auto posts_future = _states.user_timeline_service.run_async(
       &UserTimelineService::ReadUserTimeline, user_id, start, stop);
-  auto followers_future = _states.social_graph_service_obj.run_async(
+  auto followers_future = _states.social_graph_service.run_async(
       &SocialGraphService::GetFollowers, user_id);
   auto posts = std::move(posts_future.get());
   auto followers = std::move(followers_future.get());
@@ -82,22 +84,22 @@ void BackEndHandler::RemovePosts(int64_t user_id, int start, int stop) {
   std::vector<nu::Future<void>> remove_short_url_futures;
 
   for (auto post : posts) {
-    remove_post_futures.emplace_back(_states.post_storage_service_obj.run_async(
+    remove_post_futures.emplace_back(_states.post_storage_service.run_async(
         &PostStorageService::RemovePost, post.post_id));
 
     remove_from_timeline_futures.emplace_back(
-        _states.user_timeline_service_obj.run_async(
+        _states.user_timeline_service.run_async(
             &UserTimelineService::RemovePost, user_id, post.post_id,
             post.timestamp));
     for (auto mention : post.user_mentions) {
       remove_from_timeline_futures.emplace_back(
-          _states.home_timeline_service_obj.run_async(
+          _states.home_timeline_service.run_async(
               &HomeTimelineService::RemovePost, mention.user_id, post.post_id,
               post.timestamp));
     }
     for (auto user_id : followers) {
       remove_from_timeline_futures.emplace_back(
-          _states.home_timeline_service_obj.run_async(
+          _states.home_timeline_service.run_async(
               &HomeTimelineService::RemovePost, user_id, post.post_id,
               post.timestamp));
     }
@@ -106,9 +108,8 @@ void BackEndHandler::RemovePosts(int64_t user_id, int start, int stop) {
     for (auto &url : post.urls) {
       shortened_urls.emplace_back(std::move(url.shortened_url));
     }
-    remove_short_url_futures.emplace_back(
-        _states.url_shorten_service_obj.run_async(
-            &UrlShortenService::RemoveUrls, shortened_urls));
+    remove_short_url_futures.emplace_back(_states.url_shorten_service.run_async(
+        &UrlShortenService::RemoveUrls, shortened_urls));
   }
 }
 
@@ -118,15 +119,15 @@ void BackEndHandler::ComposePost(const std::string &username, int64_t user_id,
                                  const std::vector<std::string> &media_types,
                                  const PostType::type post_type) {
   auto text_service_return_future =
-      _states.text_service_obj.run_async(&TextService::ComposeText, text);
+      _states.text_service.run_async(&TextService::ComposeText, text);
 
-  auto unique_id_future = _states.unique_id_service_obj.run_async(
+  auto unique_id_future = _states.unique_id_service.run_async(
       &UniqueIdService::ComposeUniqueId, post_type);
 
-  auto medias_future = _states.media_service_obj.run_async(
+  auto medias_future = _states.media_service.run_async(
       &MediaService::ComposeMedia, media_types, media_ids);
 
-  auto creator_future = _states.user_service_obj.run_async(
+  auto creator_future = _states.user_service.run_async(
       &UserService::ComposeCreatorWithUserId, user_id, username);
 
   Post post;
@@ -134,7 +135,7 @@ void BackEndHandler::ComposePost(const std::string &username, int64_t user_id,
   post.timestamp = timestamp;
 
   auto unique_id = unique_id_future.get();
-  auto write_user_timeline_future = _states.user_timeline_service_obj.run_async(
+  auto write_user_timeline_future = _states.user_timeline_service.run_async(
       &UserTimelineService::WriteUserTimeline, unique_id, user_id, timestamp);
 
   auto &text_service_return = text_service_return_future.get();
@@ -142,7 +143,7 @@ void BackEndHandler::ComposePost(const std::string &username, int64_t user_id,
   for (auto &item : text_service_return.user_mentions) {
     user_mention_ids.emplace_back(item.user_id);
   }
-  auto write_home_timeline_future = _states.home_timeline_service_obj.run_async(
+  auto write_home_timeline_future = _states.home_timeline_service.run_async(
       &HomeTimelineService::WriteHomeTimeline, unique_id, user_id, timestamp,
       user_mention_ids);
 
@@ -154,7 +155,7 @@ void BackEndHandler::ComposePost(const std::string &username, int64_t user_id,
   post.creator = std::move(creator_future.get());
   post.post_type = post_type;
 
-  auto post_future = _states.post_storage_service_obj.run_async(
+  auto post_future = _states.post_storage_service.run_async(
       &PostStorageService::StorePost, post);
 
   write_user_timeline_future.get();
@@ -164,27 +165,27 @@ void BackEndHandler::ComposePost(const std::string &username, int64_t user_id,
 
 void BackEndHandler::ReadUserTimeline(std::vector<Post> &_return,
                                       int64_t user_id, int start, int stop) {
-  _return = _states.user_timeline_service_obj.run(
+  _return = _states.user_timeline_service.run(
       &UserTimelineService::ReadUserTimeline, user_id, start, stop);
 }
 
 void BackEndHandler::Login(std::string &_return, const std::string &username,
                            const std::string &password) {
   auto variant =
-      _states.user_service_obj.run(&UserService::Login, username, password);
+      _states.user_service.run(&UserService::Login, username, password);
   if (std::holds_alternative<LoginErrorCode>(variant)) {
     ServiceException se;
     se.errorCode = ErrorCode::SE_UNAUTHORIZED;
     auto &login_error_code = std::get<LoginErrorCode>(variant);
     switch (login_error_code) {
-    case NOT_REGISTERED:
-      se.message = "The username is not registered yet.";
-      break;
-    case WRONG_PASSWORD:
-      se.message = "Wrong password.";
-      break;
-    default:
-      break;
+      case NOT_REGISTERED:
+        se.message = "The username is not registered yet.";
+        break;
+      case WRONG_PASSWORD:
+        se.message = "Wrong password.";
+        break;
+      default:
+        break;
     }
     throw se;
   }
@@ -195,8 +196,8 @@ void BackEndHandler::RegisterUser(const std::string &first_name,
                                   const std::string &last_name,
                                   const std::string &username,
                                   const std::string &password) {
-  _states.user_service_obj.run(&UserService::RegisterUser, first_name,
-                               last_name, username, password);
+  _states.user_service.run(&UserService::RegisterUser, first_name, last_name,
+                           username, password);
 }
 
 void BackEndHandler::RegisterUserWithId(const std::string &first_name,
@@ -204,68 +205,67 @@ void BackEndHandler::RegisterUserWithId(const std::string &first_name,
                                         const std::string &username,
                                         const std::string &password,
                                         const int64_t user_id) {
-  _states.user_service_obj.run(&UserService::RegisterUserWithId, first_name,
-                               last_name, username, password, user_id);
+  _states.user_service.run(&UserService::RegisterUserWithId, first_name,
+                           last_name, username, password, user_id);
 }
 
 void BackEndHandler::GetFollowers(std::vector<int64_t> &_return,
                                   const int64_t user_id) {
-  _return = _states.social_graph_service_obj.run(
-      &SocialGraphService::GetFollowers, user_id);
+  _return = _states.social_graph_service.run(&SocialGraphService::GetFollowers,
+                                             user_id);
 }
 
 void BackEndHandler::Unfollow(const int64_t user_id,
                               const int64_t followee_id) {
-  _states.social_graph_service_obj.run(&SocialGraphService::Unfollow, user_id,
-                                       followee_id);
+  _states.social_graph_service.run(&SocialGraphService::Unfollow, user_id,
+                                   followee_id);
 }
 
 void BackEndHandler::UnfollowWithUsername(
     const std::string &user_username, const std::string &followee_username) {
-  _states.social_graph_service_obj.run(
-      &SocialGraphService::UnfollowWithUsername, user_username,
-      followee_username);
+  _states.social_graph_service.run(&SocialGraphService::UnfollowWithUsername,
+                                   user_username, followee_username);
 }
 
 void BackEndHandler::Follow(const int64_t user_id, const int64_t followee_id) {
-  _states.social_graph_service_obj.run(&SocialGraphService::Follow, user_id,
-                                       followee_id);
+  _states.social_graph_service.run(&SocialGraphService::Follow, user_id,
+                                   followee_id);
 }
 
 void BackEndHandler::FollowWithUsername(const std::string &user_username,
                                         const std::string &followee_username) {
-  _states.social_graph_service_obj.run(&SocialGraphService::FollowWithUsername,
-                                       user_username, followee_username);
+  _states.social_graph_service.run(&SocialGraphService::FollowWithUsername,
+                                   user_username, followee_username);
 }
 
 void BackEndHandler::GetFollowees(std::vector<int64_t> &_return,
                                   const int64_t user_id) {
-  _return = _states.social_graph_service_obj.run(
-      &SocialGraphService::GetFollowees, user_id);
+  _return = _states.social_graph_service.run(&SocialGraphService::GetFollowees,
+                                             user_id);
 }
 
 void BackEndHandler::ReadHomeTimeline(std::vector<Post> &_return,
                                       const int64_t user_id,
                                       const int32_t start, const int32_t stop) {
-  _return = _states.home_timeline_service_obj.run(
+  _return = _states.home_timeline_service.run(
       &HomeTimelineService::ReadHomeTimeline, user_id, start, stop);
 }
 
 void BackEndHandler::UploadMedia(const std::string &filename,
                                  const std::string &data) {
-  _states.media_storage_service_obj.run(&MediaStorageService::UploadMedia,
-                                        filename, data);
+  _states.media_storage_service.run(&MediaStorageService::UploadMedia, filename,
+                                    data);
 }
 
 void BackEndHandler::GetMedia(std::string &_return,
                               const std::string &filename) {
-  _return = _states.media_storage_service_obj.run(
-      &MediaStorageService::GetMedia, filename);
+  _return = _states.media_storage_service.run(&MediaStorageService::GetMedia,
+                                              filename);
 }
 
 class ServiceEntry {
-public:
-  ServiceEntry(StateCaps caps) {
+ public:
+  ServiceEntry(States states) {
     json config_json;
     BUG_ON(load_config_file("config/service-config.json", &config_json) != 0);
     int port = config_json["back-end-service"]["port"];
@@ -273,7 +273,7 @@ public:
     std::shared_ptr<TServerSocket> server_socket =
         std::make_shared<TServerSocket>("0.0.0.0", port);
 
-    auto back_end_handler = std::make_shared<BackEndHandler>(caps);
+    auto back_end_handler = std::make_shared<BackEndHandler>(std::move(states));
 
     TThreadedServer server(
         std::make_shared<BackEndServiceProcessor>(std::move(back_end_handler)),
@@ -284,16 +284,16 @@ public:
   }
 };
 
-} // namespace social_network
+}  // namespace social_network
 
 void do_work() {
-  auto states = std::make_unique<social_network::States>();
+  social_network::States states;
 
   std::vector<nu::Future<void>> thrift_futures;
-  for (uint32_t i = 0; i < kNumEntryObjs; i++) {
+  for (uint32_t i = 0; i < kNumEntries; i++) {
     thrift_futures.emplace_back(nu::async([&] {
-      nu::RemObj<social_network::ServiceEntry>::create_pinned(
-          states->get_caps());
+      nu::make_proclet<social_network::ServiceEntry>(
+          std::forward_as_tuple(states), true);
     }));
   }
 }

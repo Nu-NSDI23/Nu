@@ -2,10 +2,14 @@
 
 namespace social_network {
 
-SocialGraphService::SocialGraphService(nu::RemObj<UserService>::Cap cap)
-    : _user_service_obj(cap),
-      _userid_to_followers_map(kDefaultHashTablePowerNumShards),
-      _userid_to_followees_map(kDefaultHashTablePowerNumShards) {}
+SocialGraphService::SocialGraphService(nu::Proclet<UserService> proclet)
+    : _user_service(std::move(proclet)),
+      _userid_to_followers_map(
+          nu::make_dis_hash_table<int64_t, std::set<int64_t>, I64Hasher>(
+              kDefaultHashTablePowerNumShards)),
+      _userid_to_followees_map(
+          nu::make_dis_hash_table<int64_t, std::set<int64_t>, I64Hasher>(
+              kDefaultHashTablePowerNumShards)) {}
 
 void SocialGraphService::Follow(int64_t user_id, int64_t followee_id) {
   auto add_followee_future = _userid_to_followees_map.apply_async(
@@ -59,9 +63,9 @@ std::vector<int64_t> SocialGraphService::GetFollowees(int64_t user_id) {
 
 void SocialGraphService::FollowWithUsername(std::string user_name,
                                             std::string followee_name) {
-  auto user_id_future = _user_service_obj.run_async(&UserService::GetUserId,
+  auto user_id_future = _user_service.run_async(&UserService::GetUserId,
                                                     std::move(user_name));
-  auto followee_id_future = _user_service_obj.run_async(
+  auto followee_id_future = _user_service.run_async(
       &UserService::GetUserId, std::move(followee_name));
   auto user_id = user_id_future.get();
   auto followee_id = followee_id_future.get();
@@ -72,9 +76,9 @@ void SocialGraphService::FollowWithUsername(std::string user_name,
 
 void SocialGraphService::UnfollowWithUsername(std::string user_name,
                                               std::string followee_name) {
-  auto user_id_future = _user_service_obj.run_async(&UserService::GetUserId,
+  auto user_id_future = _user_service.run_async(&UserService::GetUserId,
                                                     std::move(user_name));
-  auto followee_id_future = _user_service_obj.run_async(
+  auto followee_id_future = _user_service.run_async(
       &UserService::GetUserId, std::move(followee_name));
   auto user_id = user_id_future.get();
   auto followee_id = followee_id_future.get();

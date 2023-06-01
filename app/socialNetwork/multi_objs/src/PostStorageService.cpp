@@ -3,7 +3,8 @@
 namespace social_network {
 
 PostStorageService::PostStorageService()
-    : _postid_to_post_map(kDefaultHashTablePowerNumShards) {}
+    : _postid_to_post_map(nu::make_dis_hash_table<int64_t, Post, I64Hasher>(
+          kDefaultHashTablePowerNumShards)) {}
 
 void PostStorageService::StorePost(social_network::Post post) {
   _postid_to_post_map.put(post.post_id, std::move(post));

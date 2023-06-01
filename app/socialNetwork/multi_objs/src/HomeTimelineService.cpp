@@ -3,17 +3,18 @@
 namespace social_network {
 
 HomeTimelineService::HomeTimelineService(
-    nu::RemObj<PostStorageService>::Cap post_storage_service_obj_cap,
-    nu::RemObj<SocialGraphService>::Cap social_graph_service_obj_cap)
-    : _post_storage_service_obj(post_storage_service_obj_cap),
-      _social_graph_service_obj(social_graph_service_obj_cap),
-      _userid_to_timeline_map(kDefaultHashTablePowerNumShards) {}
+    nu::Proclet<PostStorageService> post_storage_service,
+    nu::Proclet<SocialGraphService> social_graph_service)
+    : _post_storage_service(std::move(post_storage_service)),
+      _social_graph_service(std::move(social_graph_service)),
+      _userid_to_timeline_map(nu::make_dis_hash_table<int64_t, Tree, I64Hasher>(
+          kDefaultHashTablePowerNumShards)) {}
 
 void HomeTimelineService::WriteHomeTimeline(
     int64_t post_id, int64_t user_id, int64_t timestamp,
     std::vector<int64_t> user_mentions_id) {
   auto ids =
-      _social_graph_service_obj.run(&SocialGraphService::GetFollowers, user_id);
+      _social_graph_service.run(&SocialGraphService::GetFollowers, user_id);
   ids.insert(ids.end(), user_mentions_id.begin(), user_mentions_id.end());
 
   std::vector<nu::Future<void>> futures;
@@ -50,7 +51,7 @@ std::vector<Post> HomeTimelineService::ReadHomeTimeline(int64_t user_id,
         return post_ids;
       },
       start, stop);
-  return _post_storage_service_obj.run(&PostStorageService::ReadPosts,
+  return _post_storage_service.run(&PostStorageService::ReadPosts,
                                        post_ids);
 }
 

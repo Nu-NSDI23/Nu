@@ -6,6 +6,7 @@
 #include <nu/utils/perf.hpp>
 #include <random>
 #include <runtime.h>
+#include <span>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TTransportUtils.h>
@@ -19,13 +20,13 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
 constexpr static uint32_t kNumThreads = 200;
-constexpr static double kTargetMops = 1;
-constexpr static double kTotalMops = 1;
-constexpr static uint32_t kNumEntryObjs = 1;
-const static std::string kEntryObjIps[] = {
-    "18.18.1.2", "18.18.1.5", "18.18.1.7", "18.18.1.8", "18.18.1.9",
+constexpr static double kTargetMops = 2;
+constexpr static double kTotalMops = 10;
+constexpr static uint32_t kNumEntries = 1;
+constexpr static netaddr kClientAddrs[] = {
+    {.ip = MAKE_IP_ADDR(18, 18, 1, 253), .port = 9000},
 };
-constexpr static uint32_t kEntryObjPort = 9091;
+constexpr static uint32_t kEntryPort = 9091;
 constexpr static uint32_t kUserTimelinePercent = 60;
 constexpr static uint32_t kHomeTimelinePercent = 30;
 constexpr static uint32_t kComposePostPercent = 5;
@@ -43,10 +44,14 @@ constexpr static uint32_t kMaxNumUrlsPerText = 2;
 constexpr static uint32_t kMaxNumMediasPerText = 2;
 constexpr static uint64_t kTimeSeriesIntervalUs = 10 * 1000;
 
+std::string get_entry_ip(int idx) {
+  return std::string("18.18.1.") + std::to_string(idx + 2);
+}
+
 class ClientPtr {
 public:
   ClientPtr(const std::string &ip) {
-    socket.reset(new TSocket(ip, kEntryObjPort));
+    socket.reset(new TSocket(ip, kEntryPort));
     transport.reset(new TFramedTransport(socket));
     protocol.reset(new TBinaryProtocol(transport));
     client.reset(new social_network::BackEndServiceClient(protocol));
@@ -122,7 +127,7 @@ public:
     static std::atomic<uint32_t> num_threads = 0;
     uint32_t tid = num_threads++;
     return std::make_unique<socialNetworkThreadState>(
-        kEntryObjIps[tid % kNumEntryObjs]);
+        get_entry_ip(tid % kNumEntries));
   }
 
   std::unique_ptr<nu::PerfRequest> gen_req(nu::PerfThreadState *perf_state) {
@@ -271,8 +276,9 @@ void do_work() {
   nu::Perf perf(social_network_adapter);
   auto duration_us = kTotalMops / kTargetMops * 1000 * 1000;
   auto warmup_us = duration_us;
-  perf.run(kNumThreads, kTargetMops, duration_us, warmup_us,
-           50 * nu::kOneMilliSecond);
+  perf.run_multi_clients(std::span(kClientAddrs), kNumThreads,
+                         kTargetMops / std::size(kClientAddrs), duration_us,
+                         warmup_us, 10 * nu::kOneMilliSecond);
   std::cout << "real_mops, avg_lat, 50th_lat, 90th_lat, 95th_lat, 99th_lat, "
                "99.9th_lat"
             << std::endl;
@@ -282,7 +288,7 @@ void do_work() {
             << perf.get_nth_lat(99.9) << std::endl;
   auto timeseries_vec = perf.get_timeseries_nth_lats(kTimeSeriesIntervalUs, 99);
   std::ofstream ofs("timeseries");
-  for (auto [us, lat] : timeseries_vec) {
+  for (auto [_, us, lat] : timeseries_vec) {
     ofs << us << " " << lat << std::endl;
   }
 }

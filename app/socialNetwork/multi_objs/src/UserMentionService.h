@@ -9,12 +9,12 @@
 namespace social_network {
 
 class UserMentionService {
-public:
-  UserMentionService(UserService::UserProfileMap::Cap cap)
-      : _username_to_userprofile_map(std::move(cap)) {}
+ public:
+  UserMentionService(UserService::UserProfileMap map)
+      : _username_to_userprofile_map(std::move(map)) {}
   std::vector<UserMention> ComposeUserMentions(std::vector<std::string>);
 
-private:
+ private:
   UserService::UserProfileMap _username_to_userprofile_map;
 };
 

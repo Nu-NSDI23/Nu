@@ -7,7 +7,7 @@
 #include <jwt/jwt.hpp>
 #include <nlohmann/json.hpp>
 #include <nu/dis_hash_table.hpp>
-#include <nu/rem_obj.hpp>
+#include <nu/proclet.hpp>
 #include <nu/utils/mutex.hpp>
 #include <random>
 #include <stdexcept>
@@ -50,10 +50,11 @@ enum LoginErrorCode { OK, NOT_REGISTERED, WRONG_PASSWORD };
 class UserService {
 public:
   constexpr static uint32_t kDefaultHashTablePowerNumShards = 9;
-  using UserProfileMap = nu::DistributedHashTable<std::string, UserProfile,
-                                                  decltype(kHashStrtoU64)>;
+  using UserProfileMap =
+      nu::DistributedHashTable<std::string, UserProfile, StrHasher>;
 
-  UserService(UserProfileMap::Cap cap) : _username_to_userprofile_map(cap) {
+  UserService(UserProfileMap map)
+      : _username_to_userprofile_map(std::move(map)) {
     LoadSecretAndMachineId();
   }
   void RegisterUser(std::string, std::string, std::string, std::string);

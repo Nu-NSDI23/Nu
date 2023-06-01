@@ -6,11 +6,7 @@ find_package(Threads)
 set(THRIFT_GEN_CPP_DIR ../gen-cpp)
 set(NU_DIR ../../../../)
 set(CALADAN_DIR ${NU_DIR}/caladan/)
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-set(BUILD_SHARED_LIBS OFF)
-set(CMAKE_EXE_LINKER_FLAGS "-T ${CALADAN_DIR}/base/base.ld \
-                            -static -static-libstdc++ -static-libgcc \
-                            -L${NU_DIR}/../glibc/build/install/lib")
+set(CMAKE_EXE_LINKER_FLAGS "-T ${CALADAN_DIR}/base/base.ld")
 
 execute_process(COMMAND nproc OUTPUT_VARIABLE NCORES)
 add_compile_definitions(NCORES=${NCORES})
@@ -46,7 +42,7 @@ target_link_directories(
     BackEndService PRIVATE
     ${CALADAN_DIR}
     ${CALADAN_DIR}/bindings/cc
-    ${CALADAN_DIR}/rdma-core/build/lib/statics/
+    ${CALADAN_DIR}/rdma-core/build/lib/
     ${NU_DIR}
 )
 
@@ -58,6 +54,8 @@ target_link_libraries(
     # Nu
     nu
     crypto
+    boost_program_options
+    numa
     # Caladan
     rt++
     runtime

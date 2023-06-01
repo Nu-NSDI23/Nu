@@ -2,7 +2,7 @@
 
 #include <future>
 #include <iostream>
-#include <nu/rem_obj.hpp>
+#include <nu/proclet.hpp>
 #include <regex>
 #include <string>
 
@@ -13,13 +13,13 @@ namespace social_network {
 
 class TextService {
 public:
-  TextService(nu::RemObj<UrlShortenService>::Cap url_shorten_service_cap,
-              nu::RemObj<UserMentionService>::Cap user_mention_service_cap);
+  TextService(nu::Proclet<UrlShortenService> url_shorten_service,
+              nu::Proclet<UserMentionService> user_mention_service);
   TextServiceReturn ComposeText(std::string);
 
 private:
-  nu::RemObj<UrlShortenService> _url_shorten_service_obj;
-  nu::RemObj<UserMentionService> _user_mention_service_obj;
+  nu::Proclet<UrlShortenService> _url_shorten_service;
+  nu::Proclet<UserMentionService> _user_mention_service;
 };
 
 }  // namespace social_network

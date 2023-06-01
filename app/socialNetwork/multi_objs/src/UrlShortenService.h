@@ -22,10 +22,10 @@ public:
   void RemoveUrls(std::vector<std::string>);
 
 private:
-  nu::DistributedHashTable<std::string, std::string, decltype(kHashStrtoU64)>
-      _short_to_extended_map;
+ nu::DistributedHashTable<std::string, std::string, StrHasher>
+     _short_to_extended_map;
 
-  std::string GenRandomStr(int length);
+ std::string GenRandomStr(int length);
 };
 
 } // namespace social_network

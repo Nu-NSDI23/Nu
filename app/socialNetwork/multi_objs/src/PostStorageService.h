@@ -19,8 +19,7 @@ public:
   std::vector<Post> ReadPosts(std::vector<int64_t> post_ids);
 
 private:
-  nu::DistributedHashTable<int64_t, Post, decltype(kHashI64toU64)>
-      _postid_to_post_map;
+ nu::DistributedHashTable<int64_t, Post, I64Hasher> _postid_to_post_map;
 };
 
 }  // namespace social_network

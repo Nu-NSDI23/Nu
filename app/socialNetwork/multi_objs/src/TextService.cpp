@@ -2,11 +2,10 @@
 
 namespace social_network {
 
-TextService::TextService(
-    nu::RemObj<UrlShortenService>::Cap url_shorten_service_cap,
-    nu::RemObj<UserMentionService>::Cap user_mention_service_cap)
-    : _url_shorten_service_obj(url_shorten_service_cap),
-      _user_mention_service_obj(user_mention_service_cap) {}
+TextService::TextService(nu::Proclet<UrlShortenService> url_shorten_service,
+                         nu::Proclet<UserMentionService> user_mention_service)
+    : _url_shorten_service(std::move(url_shorten_service)),
+      _user_mention_service(std::move(user_mention_service)) {}
 
 TextServiceReturn TextService::ComposeText(std::string text) {
   auto http_pattern = "(http://|https://)([a-zA-Z0-9_!~*'().&=+$%-]+)";
@@ -22,7 +21,7 @@ TextServiceReturn TextService::ComposeText(std::string text) {
     s = m.suffix().str();
   }
   auto target_urls_future =
-      _url_shorten_service_obj.run_async(&UrlShortenService::ComposeUrls, urls);
+      _url_shorten_service.run_async(&UrlShortenService::ComposeUrls, urls);
 
   std::vector<std::string> mention_usernames;
   e = mention_pattern;
@@ -33,7 +32,7 @@ TextServiceReturn TextService::ComposeText(std::string text) {
     mention_usernames.emplace_back(user_mention);
     s = m.suffix().str();
   }
-  auto user_mentions_future = _user_mention_service_obj.run_async(
+  auto user_mentions_future = _user_mention_service.run_async(
       &UserMentionService::ComposeUserMentions, mention_usernames);
 
   auto &target_urls = target_urls_future.get();

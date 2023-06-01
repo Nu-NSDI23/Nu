@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cereal/archives/binary.hpp>
-#include <nu/rem_obj.hpp>
+#include <nu/proclet.hpp>
 
 #include "../gen-cpp/social_network_types.h"
 #include "HomeTimelineService.h"
@@ -20,44 +20,28 @@ struct StateCaps;
 
 struct States {
   States();
-  States(const StateCaps &caps);
-  StateCaps get_caps();
-
-  UserService::UserProfileMap username_to_userprofile_map;
-  nu::RemObj<UniqueIdService> unique_id_service_obj;
-  nu::RemObj<MediaService> media_service_obj;
-  nu::RemObj<PostStorageService> post_storage_service_obj;
-  nu::RemObj<UserTimelineService> user_timeline_service_obj;
-  nu::RemObj<UserService> user_service_obj;
-  nu::RemObj<SocialGraphService> social_graph_service_obj;
-  nu::RemObj<HomeTimelineService> home_timeline_service_obj;
-  nu::RemObj<UrlShortenService> url_shorten_service_obj;
-  nu::RemObj<UserMentionService> user_mention_service_obj;
-  nu::RemObj<TextService> text_service_obj;
-  nu::RemObj<MediaStorageService> media_storage_service_obj;
-};
-
-struct StateCaps {
-  template <class Archive> void serialize(Archive &ar) {
-    ar(username_to_userprofile_map_cap, unique_id_service_obj_cap,
-       media_service_obj_cap, post_storage_service_obj_cap,
-       user_timeline_service_obj_cap, user_service_obj_cap,
-       social_graph_service_obj_cap, home_timeline_service_obj_cap,
-       url_shorten_service_obj_cap, user_mention_service_obj_cap,
-       text_service_obj_cap, media_storage_service_obj_cap);
+  States(const States &states) = default;
+  States(States &&states) = default;
+  template <class Archive>
+  void serialize(Archive &ar) {
+    ar(username_to_userprofile_map, unique_id_service, media_service,
+       post_storage_service, user_timeline_service, user_service,
+       social_graph_service, home_timeline_service, url_shorten_service,
+       user_mention_service, text_service, media_storage_service);
   }
 
-  UserService::UserProfileMap::Cap username_to_userprofile_map_cap;
-  nu::RemObj<UniqueIdService>::Cap unique_id_service_obj_cap;
-  nu::RemObj<MediaService>::Cap media_service_obj_cap;
-  nu::RemObj<PostStorageService>::Cap post_storage_service_obj_cap;
-  nu::RemObj<UserTimelineService>::Cap user_timeline_service_obj_cap;
-  nu::RemObj<UserService>::Cap user_service_obj_cap;
-  nu::RemObj<SocialGraphService>::Cap social_graph_service_obj_cap;
-  nu::RemObj<HomeTimelineService>::Cap home_timeline_service_obj_cap;
-  nu::RemObj<UrlShortenService>::Cap url_shorten_service_obj_cap;
-  nu::RemObj<UserMentionService>::Cap user_mention_service_obj_cap;
-  nu::RemObj<TextService>::Cap text_service_obj_cap;
-  nu::RemObj<MediaStorageService>::Cap media_storage_service_obj_cap;
+  UserService::UserProfileMap username_to_userprofile_map;
+  nu::Proclet<UniqueIdService> unique_id_service;
+  nu::Proclet<MediaService> media_service;
+  nu::Proclet<PostStorageService> post_storage_service;
+  nu::Proclet<UserTimelineService> user_timeline_service;
+  nu::Proclet<UserService> user_service;
+  nu::Proclet<SocialGraphService> social_graph_service;
+  nu::Proclet<HomeTimelineService> home_timeline_service;
+  nu::Proclet<UrlShortenService> url_shorten_service;
+  nu::Proclet<UserMentionService> user_mention_service;
+  nu::Proclet<TextService> text_service;
+  nu::Proclet<MediaStorageService> media_storage_service;
 };
+
 } // namespace social_network

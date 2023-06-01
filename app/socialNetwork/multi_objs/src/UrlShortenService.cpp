@@ -3,7 +3,9 @@
 namespace social_network {
 
 UrlShortenService::UrlShortenService()
-    : _short_to_extended_map(kDefaultHashTablePowerNumShards) {}
+    : _short_to_extended_map(
+          nu::make_dis_hash_table<std::string, std::string, StrHasher>(
+              kDefaultHashTablePowerNumShards)) {}
 
 std::string UrlShortenService::GenRandomStr(int length) {
   const char char_map[] = "abcdefghijklmnopqrstuvwxyzABCDEF"

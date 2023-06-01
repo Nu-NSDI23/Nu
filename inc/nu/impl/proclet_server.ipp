@@ -317,7 +317,7 @@ void ProcletServer::run_closure_locally(
     MigrationGuard *callee_migration_guard,
     const ProcletSlabGuard &callee_slab_guard, RetT *caller_ptr,
     ProcletHeader *caller_header, ProcletHeader *callee_header, FnPtr fn_ptr,
-    std::tuple<Ss...> &&states) {
+    std::tuple<Ss...> *states) {
   if constexpr (CPUMon) {
     if constexpr (CPUSamp) {
       callee_header->cpu_load.start_monitor();
@@ -340,7 +340,8 @@ void ProcletServer::run_closure_locally(
             new (ret) RetT(fn_ptr(*obj, std::move(states)...));
           }
         },
-        std::move(states));
+        std::move(*states));
+    std::destroy_at(states);
     callee_header->thread_cnt.dec_unsafe();
     if constexpr (CPUMon) {
       callee_header->cpu_load.end_monitor();
@@ -376,7 +377,8 @@ void ProcletServer::run_closure_locally(
   } else {
     callee_migration_guard->reset();
     std::apply([&](auto &&... states) { fn_ptr(*obj, std::move(states)...); },
-               std::move(states));
+               std::move(*states));
+    std::destroy_at(states);
     callee_header->thread_cnt.dec_unsafe();
     if constexpr (CPUMon) {
       callee_header->cpu_load.end_monitor();

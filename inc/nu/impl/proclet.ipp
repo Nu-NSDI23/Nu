@@ -306,6 +306,8 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
         // Do copy for the most cases and only do move when we are sure it's
         // safe. For copy, we assume the type implements "deep copy".
         auto copied_states =
+            reinterpret_cast<StatesTuple *>(alloca(sizeof(StatesTuple)));
+        new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
         caller_migration_guard.reset();
 
@@ -314,13 +316,13 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
                                              decltype(fn),
                                              std::decay_t<S1s>...>(
               &(*optional_callee_migration_guard), slab_guard, &ret,
-              caller_header, callee_header, fn, std::move(copied_states));
+              caller_header, callee_header, fn, copied_states);
         } else {
           ProcletServer::run_closure_locally<MigrEn, CPUMon, CPUSamp, T, RetT,
                                              decltype(fn),
                                              std::decay_t<S1s>...>(
               &(*optional_callee_migration_guard), slab_guard, nullptr,
-              caller_header, callee_header, fn, std::move(copied_states));
+              caller_header, callee_header, fn, copied_states);
         }
       }
 

@@ -20,7 +20,7 @@ struct I64Hasher {
 };
 
 struct States {
-  States();
+  States() = default;
   States(const States &) noexcept = default;
   States(States &&) noexcept = default;
   States &operator=(const States &) noexcept = default;
@@ -53,5 +53,7 @@ struct States {
       userid_to_followees_map;
   std::string secret;
 };
+
+States make_states();
 
 } // namespace social_network

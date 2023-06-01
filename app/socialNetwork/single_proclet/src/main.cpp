@@ -5,7 +5,7 @@
 
 #include "ThriftBackEndServer.hpp"
 
-constexpr uint32_t kNumEntryObjs = 1;
+constexpr uint32_t kNumEntries = 1;
 
 using namespace social_network;
 
@@ -35,10 +35,10 @@ public:
 };
 
 void DoWork() {
-  States states;
+  auto states = make_states();
 
   std::vector<nu::Future<nu::Proclet<ServiceEntry>>> thrift_futures;
-  for (uint32_t i = 0; i < kNumEntryObjs; i++) {
+  for (uint32_t i = 0; i < kNumEntries; i++) {
     thrift_futures.emplace_back(nu::make_proclet_async<ServiceEntry>(
         std::forward_as_tuple(states), true));
   }

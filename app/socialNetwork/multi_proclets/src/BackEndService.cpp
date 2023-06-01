@@ -287,7 +287,7 @@ class ServiceEntry {
 }  // namespace social_network
 
 void do_work() {
-  social_network::States states;
+  auto states = social_network::make_states();
 
   std::vector<nu::Future<void>> thrift_futures;
   for (uint32_t i = 0; i < kNumEntries; i++) {

@@ -19,7 +19,7 @@ namespace social_network {
 struct StateCaps;
 
 struct States {
-  States();
+  States() = default;
   States(const States &states) = default;
   States(States &&states) = default;
   template <class Archive>
@@ -43,5 +43,7 @@ struct States {
   nu::Proclet<TextService> text_service;
   nu::Proclet<MediaStorageService> media_storage_service;
 };
+
+States make_states();
 
 } // namespace social_network

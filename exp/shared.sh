@@ -68,17 +68,17 @@ function __start_server() {
     ip=$(caladan_srv_ip $srv_idx)
     nu_libs_name=".nu_libs_$BASHPID"
 
+    rm -rf $nu_libs_name
     mkdir $nu_libs_name
     cp `ldd $file_path | grep "=>" | awk  '{print $3}' | xargs` $nu_libs_name
     ssh $(ssh_ip $srv_idx) "rm -rf $nu_libs_name"
     scp -r $nu_libs_name $(ssh_ip $srv_idx):`pwd`/
-    rm -rf $nu_libs_name
 
     if [[ $main -eq 0 ]]
     then
-	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip --nomemps --nocpups"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip"
     else
-	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip --nomemps --nocpups"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip"
     fi
 }
 

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-source ../../../setup.sh
 source ../../shared.sh
 
 CLT_IDX=1

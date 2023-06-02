@@ -1,7 +1,7 @@
 #!/bin/bash
 
-ROOT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-CALADAN_PATH=$ROOT_PATH/caladan
+SHARED_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+CALADAN_PATH=$SHARED_SCRIPT_DIR/caladan
 
 function say_failed() {
     echo -e "----\e[31mFailed\e[0m"

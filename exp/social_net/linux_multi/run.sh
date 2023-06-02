@@ -1,6 +1,5 @@
 #!/bin/bash
 
-source ../../../setup.sh
 source ../../shared.sh
 
 DISK_DEV=/dev/nvme1n1

@@ -1,7 +1,9 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-NU_DIR=$SCRIPT_DIR/..
+EXP_SHARED_SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source $EXP_SHARED_SCRIPT_DIR/../setup.sh
+
+NU_DIR=$EXP_SHARED_SCRIPT_DIR/..
 CALADAN_DIR=$NU_DIR/caladan
 
 function ssh_ip() {
@@ -41,6 +43,9 @@ function cleanup() {
                           sudo pkill -9 kmeans;
                           sudo pkill -9 python3;
                           sudo pkill -9 BackEndService;"
+	ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' \
+                          | xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
+	ssh $(ssh_ip $i) "cd `pwd`; rm -rf .nu_libs*"
     done
 }
 

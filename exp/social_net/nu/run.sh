@@ -37,8 +37,8 @@ mops=( 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.82 0.84 0.86 0.88 0.90 0.92 )
 for mop in ${mops[@]}
 do
     cd $SOCIAL_NET_DIR
-    sed "s/constexpr uint32_t kNumEntryObjs.*/constexpr uint32_t kNumEntryObjs = 1;/g" -i src/main.cpp
-    sed "s/constexpr static uint32_t kNumEntryObjs.*/constexpr static uint32_t kNumEntryObjs = 1;/g" -i bench/client.cpp
+    sed "s/constexpr uint32_t kNumEntries.*/constexpr uint32_t kNumEntries = 1;/g" -i src/main.cpp
+    sed "s/constexpr static uint32_t kNumEntries.*/constexpr static uint32_t kNumEntries = 1;/g" -i bench/client.cpp
     sed "s/constexpr static double kTargetMops.*/constexpr static double kTargetMops = $mop;/g" -i bench/client.cpp
     cd build
     make clean

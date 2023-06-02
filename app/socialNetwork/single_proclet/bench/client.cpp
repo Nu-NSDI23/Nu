@@ -19,13 +19,10 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
 constexpr static uint32_t kNumThreads = 200;
-constexpr static double kTargetMops = 0.2;
+constexpr static double kTargetMops = 0.1;
 constexpr static double kTotalMops = 1;
-constexpr static uint32_t kNumEntryObjs = 1;
-const static std::string kEntryObjIps[] = {
-    "18.18.1.2",
-};
-constexpr static uint32_t kEntryObjPort = 9091;
+constexpr static uint32_t kNumEntries = 1;
+constexpr static uint32_t kEntryPort = 9091;
 constexpr static uint32_t kUserTimelinePercent = 60;
 constexpr static uint32_t kHomeTimelinePercent = 30;
 constexpr static uint32_t kComposePostPercent = 5;
@@ -43,10 +40,14 @@ constexpr static uint32_t kMaxNumUrlsPerText = 2;
 constexpr static uint32_t kMaxNumMediasPerText = 2;
 constexpr static uint64_t kTimeSeriesIntervalUs = 10 * 1000;
 
+std::string get_entry_ip(int idx) {
+  return std::string("18.18.1.") + std::to_string(idx + 2);
+}
+
 class ClientPtr {
 public:
   ClientPtr(const std::string &ip) {
-    socket.reset(new TSocket(ip, kEntryObjPort));
+    socket.reset(new TSocket(ip, kEntryPort));
     transport.reset(new TFramedTransport(socket));
     protocol.reset(new TBinaryProtocol(transport));
     client.reset(new social_network::BackEndServiceClient(protocol));
@@ -122,7 +123,7 @@ public:
     static std::atomic<uint32_t> num_threads = 0;
     uint32_t tid = num_threads++;
     return std::make_unique<socialNetworkThreadState>(
-        kEntryObjIps[tid % kNumEntryObjs]);
+        get_entry_ip(tid % kNumEntries));
   }
 
   std::unique_ptr<nu::PerfRequest> gen_req(nu::PerfThreadState *perf_state) {

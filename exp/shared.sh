@@ -56,6 +56,12 @@ function __start_server() {
     else
 	spin_ks=$5
     fi
+    if [[ $6 -eq 0 ]]
+    then
+        isol_cmd=""
+    else
+	isol_cmd="--isol"
+    fi
     ip=$(caladan_srv_ip $srv_idx)
     nu_libs_name=".nu_libs_$BASHPID"
     rm -rf $nu_libs_name
@@ -67,19 +73,23 @@ function __start_server() {
     if [[ $main -eq 0 ]]
     then
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip -p $spin_ks --nomemps --nocpups"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip -p $spin_ks $isol_cmd"
     else
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip -p $spin_ks --nomemps --nocpups"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip -p $spin_ks $isol_cmd"
     fi
 }
 
 function start_server() {
-    __start_server $1 $2 $3 0 $4
+    __start_server $1 $2 $3 0 $4 $5 0
 }
 
 function start_main_server() {
-    __start_server $1 $2 $3 1 $4
+    __start_server $1 $2 $3 1 $4 $5 0
+}
+
+function start_main_server_isol() {
+    __start_server $1 $2 $3 1 $4 $5 1
 }
 
 function run_program() {

@@ -49,7 +49,7 @@ constexpr int kNumMeans = 1000;
 constexpr Data_t kGridSize = 8ULL << 32;
 constexpr bool kDumpResult = false;
 constexpr int kNumWorkerThreads = 1;
-constexpr int kChunkSize = 6;
+constexpr int kChunkSize = 32;
 
 struct point {
   Data_t d[kDim];

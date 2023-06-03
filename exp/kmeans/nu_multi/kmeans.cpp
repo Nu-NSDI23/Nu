@@ -48,10 +48,10 @@ constexpr int kNumMeans = 1000;
 // Size of each dimension of vector space
 constexpr Data_t kGridSize = 8ULL << 32;
 constexpr bool kDumpResult = false;
-constexpr int kChunkSize = 6;
+constexpr int kChunkSize = 32;
 
 constexpr int kNumWorkerNodes = 1;
-constexpr int kNumThreadsPerWorker = 46 / 2;
+constexpr int kNumThreadsPerWorker = 23;
 constexpr int kNumWorkerThreads = kNumWorkerNodes * kNumThreadsPerWorker;
 
 struct point {

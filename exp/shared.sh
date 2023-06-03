@@ -30,31 +30,6 @@ function probe_num_nodes() {
     done
 }
 
-function cleanup() {
-    for i in `seq 1 $num_nodes`
-    do
-	ssh $(ssh_ip $i) "sudo pkill -9 iokerneld;
-                          sudo pkill -9 ctrl_main;
-                          sudo pkill -9 main;
-                          sudo pkill -9 client;
-                          sudo pkill -9 server;
-                          sudo pkill -9 synthetic;
-                          sudo pkill -9 memcached;
-                          sudo pkill -9 kmeans;
-                          sudo pkill -9 python3;
-                          sudo pkill -9 BackEndService;"
-	ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' \
-                          | xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
-	ssh $(ssh_ip $i) "cd `pwd`; rm -rf .nu_libs*"
-    done
-}
-
-function force_cleanup() {
-    cleanup
-    sudo pkill -9 run.sh
-    exit 1
-}
-
 function start_iokerneld() {
     srv_idx=$1
     ssh $(ssh_ip $srv_idx) "sudo $CALADAN_DIR/iokerneld" &
@@ -66,13 +41,23 @@ function start_ctrl() {
 }
 
 function __start_server() {
-    file_path=$1
+    if [[ "$1" = /* ]]
+    then
+	file_path=$1
+    else
+	file_path="./$1"
+    fi
     srv_idx=$2
     lpid=$3
     main=$4
+    if [ -z "$5" ]
+    then
+	spin_ks=0
+    else
+	spin_ks=$5
+    fi
     ip=$(caladan_srv_ip $srv_idx)
     nu_libs_name=".nu_libs_$BASHPID"
-
     rm -rf $nu_libs_name
     mkdir $nu_libs_name
     cp `ldd $file_path | grep "=>" | awk  '{print $3}' | xargs` $nu_libs_name
@@ -81,18 +66,20 @@ function __start_server() {
 
     if [[ $main -eq 0 ]]
     then
-	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`;
+                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip -p $spin_ks --nomemps --nocpups"
     else
-	ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip"
+	ssh $(ssh_ip $srv_idx) "cd `pwd`;
+                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip -p $spin_ks --nomemps --nocpups"
     fi
 }
 
 function start_server() {
-    __start_server $1 $2 $3 0
+    __start_server $1 $2 $3 0 $4
 }
 
 function start_main_server() {
-    __start_server $1 $2 $3 1
+    __start_server $1 $2 $3 1 $4
 }
 
 function run_program() {
@@ -124,6 +111,63 @@ function prepare() {
 	ssh $(ssh_ip $i) "cd $NU_DIR; sudo ./setup.sh" &
     done
     wait
+}
+
+function rebuild_caladan_and_nu() {
+    pushd $CALADAN_DIR
+    make clean
+    make -j`nproc`
+    cd bindings/cc
+    make clean
+    make -j`nproc`
+    cd ../../..
+    make clean
+    make -j`nproc`
+    popd
+}
+
+function caladan_use_small_rto() {
+    small_rto=1
+    pushd $CALADAN_DIR/runtime/net
+    cp tcp.h tcp.h.bak
+    sed "s/#define TCP_ACK_TIMEOUT.*/#define TCP_ACK_TIMEOUT ONE_MS/g" -i tcp.h
+    sed "s/#define TCP_OOQ_ACK_TIMEOUT.*/#define TCP_OOQ_ACK_TIMEOUT ONE_MS/g" -i tcp.h
+    sed "s/#define TCP_ZERO_WND_TIMEOUT.*/#define TCP_ZERO_WND_TIMEOUT ONE_MS/g" -i tcp.h
+    sed "s/#define TCP_RETRANSMIT_TIMEOUT.*/#define TCP_RETRANSMIT_TIMEOUT ONE_MS/g" -i tcp.h
+    rebuild_caladan_and_nu
+    popd
+}
+
+function caladan_use_default_rto() {
+    pushd $CALADAN_DIR/runtime/net
+    git checkout -- tcp.h
+    rebuild_caladan_and_nu
+    popd
+}
+
+function cleanup() {
+    for i in `seq 1 $num_nodes`
+    do
+	ssh $(ssh_ip $i) "sudo pkill -9 iokerneld;
+                          sudo pkill -9 ctrl_main;
+                          sudo pkill -9 main;
+                          sudo pkill -9 client;
+                          sudo pkill -9 server;
+                          sudo pkill -9 synthetic;
+                          sudo pkill -9 memcached;
+                          sudo pkill -9 kmeans;
+                          sudo pkill -9 python3;
+                          sudo pkill -9 BackEndService;"
+	ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' \
+                          | xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
+	ssh $(ssh_ip $i) "cd `pwd`; rm -rf .nu_libs*"
+    done
+}
+
+function force_cleanup() {
+    cleanup
+    sudo pkill -9 run.sh
+    exit 1
 }
 
 trap force_cleanup INT

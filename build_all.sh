@@ -27,7 +27,7 @@ cd ..
 
 # Build Nu.
 make clean
-make -j
+make -j`nproc`
 
 # Setup Nu.
 ./setup.sh

@@ -41,6 +41,7 @@ do
         start_server kmeans $srv_idx $LPID $SPIN_KS &
     done
 
+    sleep 5
     distribute kmeans $CLT_IDX
     start_main_server_isol kmeans $CLT_IDX $LPID $SPIN_KS >$DIR/logs/$num_srvs &
     ( tail -f -n0 $DIR/logs/$num_srvs & ) | grep -q "iter = 10"

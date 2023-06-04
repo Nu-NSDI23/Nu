@@ -14,7 +14,7 @@ CLT_END_IDX=30 #inclusive
 DIR=`pwd`
 SOCIAL_NET_DIR=$DIR/../../../app/socialNetwork/single_proclet/
 
-MOPS=( 1 1.3 1.6 1.9 2.2 2.5 2.8 3.1 3.4 3.7 4 4.3 4.6 4.9 5.2 5.5 5.8 6.1 6.4 6.7 7 7.3 7.6 7.9 8.2 8.5 8.8 9.1 9.4 9.7 )
+MOPS=( 1.3 1.6 1.9 2.2 2.5 2.8 3.1 3.4 3.7 4 4.3 4.6 4.9 5.2 5.5 5.8 6.1 6.4 6.7 7 7.3 7.6 7.9 8.2 8.5 8.8 9.1 9.4 9.7 10 )
 
 cp client.cpp $SOCIAL_NET_DIR/bench
 cd $SOCIAL_NET_DIR

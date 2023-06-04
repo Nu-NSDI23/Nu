@@ -47,11 +47,11 @@ inline uint32_t get_max_num_cache_entries(bool aggressive_caching,
                                           uint32_t slab_shift) {
   switch (slab_shift) {
     case 4:  // 32 B
-      return 64;
+      return 128;
     case 5:  // 64 B
-      return 64;
+      return 128;
     case 6:  // 128 B
-      return 32;
+      return 64;
     case 7:  // 256 B
       return 32;
     case 8:  // 512 B

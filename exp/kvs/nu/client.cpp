@@ -24,7 +24,7 @@ using namespace nu;
 
 constexpr uint32_t kKeyLen = 20;
 constexpr uint32_t kValLen = 2;
-constexpr double kLoadFactor = 0.20;
+constexpr double kLoadFactor = 0.30;
 constexpr uint32_t kPrintIntervalUS = 1000 * 1000;
 constexpr uint32_t kNumProxies = 1;
 constexpr uint32_t kProxyIps[] = {MAKE_IP_ADDR(18, 18, 1, 4)};

@@ -49,7 +49,7 @@ run_cmd $CLT_IDX "cd $CALADAN_DIR;
 run_program $DIR/../../../caladan/apps/synthetic/target/release/synthetic $CLT_IDX \
      $SRV_100G_IP:8888 --config $DIR/conf/client --mode runtime-client \
      --protocol memcached --transport tcp --mpps 6 --samples 20 --threads 48 --start_mpps 0.2 \
-     --runtime=5 --nvalues=53687091 --key_size 20 --value_size 2 >$DIR/logs/log
+     --runtime=5 --nvalues=80530636 --key_size 20 --value_size 2 >$DIR/logs/log
 
 run_cmd $CLT_IDX "cd $CALADAN_DIR;
                   sed 's/CONFIG_LTO=.*/CONFIG_LTO=y/g' -i build/config;

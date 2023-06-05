@@ -35,7 +35,7 @@ function run_server {
 }
 
 function run_test {
-    BIN="$ROOT_PATH/bin/$1"
+    BIN="$SHARED_SCRIPT_DIR/bin/$1"
 
     run_controller 1>/dev/null 2>&1 &
     disown -r

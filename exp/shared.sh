@@ -30,6 +30,15 @@ function probe_num_nodes() {
     done
 }
 
+function executable_file_path() {
+    if [[ "$1" = /* ]]
+    then
+	echo $1
+    else
+	echo "./$1"
+    fi
+}
+
 function start_iokerneld() {
     srv_idx=$1
     ssh $(ssh_ip $srv_idx) "sudo $CALADAN_DIR/iokerneld" &
@@ -41,12 +50,7 @@ function start_ctrl() {
 }
 
 function __start_server() {
-    if [[ "$1" = /* ]]
-    then
-	file_path=$1
-    else
-	file_path="./$1"
-    fi
+    file_path=$(executable_file_path $1)
     srv_idx=$2
     lpid=$3
     main=$4
@@ -93,7 +97,7 @@ function start_main_server_isol() {
 }
 
 function run_program() {
-    file_path=$1
+    file_path=$(executable_file_path $1)
     srv_idx=$2
     args=${@:3}
     ssh $(ssh_ip $srv_idx) "cd `pwd`; sudo $file_path $args"

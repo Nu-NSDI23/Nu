@@ -35,7 +35,7 @@ constexpr uint32_t kProxyIps[] = {
     MAKE_IP_ADDR(18, 18, 1, 14), MAKE_IP_ADDR(18, 18, 1, 15),
     MAKE_IP_ADDR(18, 18, 1, 16)};
 constexpr uint32_t kProxyPort = 10086;
-constexpr uint32_t kNumThreads = 200;
+constexpr uint32_t kNumThreads = 500;
 
 rt::TcpConn *conns[kNumProxies][kNumThreads];
 

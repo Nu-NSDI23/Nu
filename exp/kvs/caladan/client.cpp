@@ -28,8 +28,12 @@ constexpr double kLoadFactor = 0.30;
 constexpr uint32_t kPrintIntervalUS = 1000 * 1000;
 constexpr uint32_t kProxyIp = MAKE_IP_ADDR(18, 18, 1, 2);
 constexpr uint32_t kProxyPort = 10086;
-constexpr uint32_t kNumThreads = 1000;
-constexpr double kTargetMops = 5;
+constexpr static netaddr kClientAddrs[] = {
+    {.ip = MAKE_IP_ADDR(18, 18, 1, 3), .port = 9000},
+    {.ip = MAKE_IP_ADDR(18, 18, 1, 4), .port = 9000},
+};
+constexpr uint32_t kNumThreads = 200;
+constexpr double kTargetMops = 1;
 constexpr uint32_t kWarmupUs = 1 * kOneSecond;
 constexpr uint32_t kDurationUs = 15 * kOneSecond;
 
@@ -140,8 +144,9 @@ void do_work() {
 
   MemcachedPerfAdapter memcached_perf_adapter;
   nu::Perf perf(memcached_perf_adapter);
-  perf.run(kNumThreads, kTargetMops, kDurationUs, kWarmupUs,
-           50 * nu::kOneMilliSecond);
+  perf.run_multi_clients(std::span(kClientAddrs), kNumThreads,
+                         kTargetMops / std::size(kClientAddrs), kDurationUs,
+                         kWarmupUs, 50 * nu::kOneMilliSecond);
   std::cout << "real_mops, avg_lat, 50th_lat, 90th_lat, 95th_lat, 99th_lat, "
                "99.9th_lat"
             << std::endl;

@@ -31,7 +31,7 @@ run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; ./install_docker.sh"
 run_cmd $NGINX_SRV_IDX "cd $SOCIAL_NET_DIR; ./down_nginx.sh; ./up_nginx.sh"
 run_cmd $NGINX_SRV_IDX "sudo ip addr add $NGINX_SRV_CALADAN_IP_AND_MASK dev $nic_dev"
 
-mops=( 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.82 0.84 0.86 0.88 0.90 0.92 )
+mops=( 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.08 1.1 1.12 1.14 1.16 )
 
 for mop in ${mops[@]}
 do

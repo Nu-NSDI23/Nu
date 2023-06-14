@@ -14,6 +14,7 @@ extern "C" {
 #include "nu/proclet_mgr.hpp"
 
 #include <fstream> // FOR DEBUGGING
+#include <unordered_map> // FOR DEBUGGING
 
 namespace nu {
 

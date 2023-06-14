@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <unordered_map>
 
 extern "C" {
 #include <runtime/net.h>
@@ -48,6 +49,13 @@ struct ProcletHeader {
 
   // Used for monitoring cpu load.
   CPULoad cpu_load;
+
+  // Used for monitoring total amount of local calls, estimate total bytes for performance
+  Counter local_call_cnt;
+
+  // stores amount and total data size of outgoing remote calls to every NodeIP (machine)
+  // Synchronized using spin_lock
+  std::unordered_map<NodeIP, std::pair<uint32_t, uint64_t>> remote_call_map;
 
   // Max heap size.
   uint64_t populate_size;

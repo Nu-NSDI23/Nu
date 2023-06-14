@@ -13,6 +13,8 @@ extern "C" {
 #include "nu/runtime.hpp"
 #include "nu/proclet_mgr.hpp"
 
+#include <fstream> // FOR DEBUGGING
+
 namespace nu {
 
 uint8_t proclet_statuses[kMaxNumProclets];
@@ -42,6 +44,17 @@ void ProcletManager::madvise_populate(void *proclet_base,
 void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
   RuntimeSlabGuard guard;
   auto *proclet_header = reinterpret_cast<ProcletHeader *>(proclet_base);
+
+  // dumping logs
+  std::ofstream logfile;
+  logfile.open("proclet_metrics.txt", std::ios_base::app);
+
+  logfile << "# local calls: " << local_call_cnt.get() << "\n# remote calls & size:\n"
+  for (auto it = remote_call_map.begin(); it != remote_call_map.end(); it++){
+    logfile << "IP: " << it->first << "#: " << it->second->first << ", size: " << it->second->second << " bytes\n\n";
+  }
+  logfile.close();
+  // end dumping logs
 
   if (!for_migration) {
     while (unlikely(proclet_header->slab_ref_cnt.get())) {

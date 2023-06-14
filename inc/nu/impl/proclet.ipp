@@ -5,6 +5,7 @@
 #include <sstream>
 #include <type_traits>
 #include <utility>
+#include <unordered_map>
 
 extern "C" {
 #include <base/assert.h>
@@ -60,11 +61,28 @@ retry:
 
   auto *client = get_runtime()->rpc_client_mgr()->get_by_proclet_id(id);
   rc = client->Call(args_span, &return_buf);
+
   if (unlikely(rc == kErrWrongClient)) {
     get_runtime()->rpc_client_mgr()->invalidate_cache(id, client);
     goto retry;
   }
   assert(rc == kOk);
+
+  // metric logging
+  // for local machine
+  caller_header->spin_lock.lock();
+  NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
+
+  auto target_kvpair = caller_header->remote_call_map.find(target_ip);
+  if (target_kvpair != (caller_header->remote_call_map.end()) ){
+    target_kvpair->second += states_size; 
+  }
+  else{
+    caller_header->remote_call_map.emplace(target_ip, states_size);
+  }
+  caller_header->spin_lock.unlock();
+  // end metric logging 
+
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
 
   optional_caller_guard =
@@ -100,12 +118,28 @@ retry:
 
   auto *client = get_runtime()->rpc_client_mgr()->get_by_proclet_id(id);
   rc = client->Call(args_span, &return_buf);
+
   if (unlikely(rc == kErrWrongClient)) {
     get_runtime()->rpc_client_mgr()->invalidate_cache(id, client);
     goto retry;
   }
   assert(rc == kOk);
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
+
+  // metric gathering
+  caller_header->spin_lock.lock();
+  NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
+
+  auto target_kvpair = caller_header->remote_call_map.find(target_ip);
+  auto return_span = return_buf.get_mut_buf();
+  if (target_kvpair != (caller_header->remote_call_map.end()) ){
+    target_kvpair->second += states_size + return_span; 
+  }
+  else{
+    caller_header->remote_call_map.emplace(target_ip, state_size + return_span);
+  }
+  caller_header->spin_lock.unlock();
+  // end metric gathering
 
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
@@ -115,7 +149,7 @@ retry:
   } else {
     auto *ia_sstream = get_runtime()->archive_pool()->get_ia_sstream();
     auto &[ret_ss, ia] = *ia_sstream;
-    auto return_span = return_buf.get_mut_buf();
+    // now calculated above during metrics gathering auto return_span = return_buf.get_mut_buf();
     ret_ss.span(
         {reinterpret_cast<char *>(return_span.data()), return_span.size()});
     if (caller_header) {
@@ -310,6 +344,10 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
         new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
         caller_migration_guard.reset();
+
+        // local call count recording for caller
+        caller_header->local_call_cnt.inc_unsafe();
+        // callee_header->local_call_cnt.inc_unsafe();
 
         if constexpr (kHasRetVal) {
           ProcletServer::run_closure_locally<MigrEn, CPUMon, CPUSamp, T, RetT,

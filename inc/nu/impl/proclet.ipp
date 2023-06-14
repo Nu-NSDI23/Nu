@@ -67,7 +67,7 @@ retry:
     goto retry;
   }
   assert(rc == kOk);
-
+  /*
   // metric logging
   // for local machine
   caller_header->spin_lock.lock();
@@ -82,7 +82,7 @@ retry:
     caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, states_size));
   }
   caller_header->spin_lock.unlock();
-  // end metric logging 
+  // end metric logging */
 
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
 
@@ -126,7 +126,7 @@ retry:
   }
   assert(rc == kOk);
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
-
+  /*
   // metric gathering
   caller_header->spin_lock.lock();
   NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
@@ -142,7 +142,7 @@ retry:
       1, states_size + return_span.size_bytes()));
   }
   caller_header->spin_lock.unlock();
-  // end metric gathering
+  // end metric gathering*/
 
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);

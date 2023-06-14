@@ -45,7 +45,7 @@ void ProcletManager::madvise_populate(void *proclet_base,
 void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
   RuntimeSlabGuard guard;
   auto *proclet_header = reinterpret_cast<ProcletHeader *>(proclet_base);
-
+  /*
   // dumping logs
   std::ofstream logfile;
   logfile.open("proclet_metrics.txt", std::ios_base::app);
@@ -56,7 +56,7 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
   }
   logfile.close();
   // end dumping logs
-
+  */
   if (!for_migration) {
     while (unlikely(proclet_header->slab_ref_cnt.get())) {
       get_runtime()->caladan()->thread_yield();

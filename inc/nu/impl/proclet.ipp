@@ -67,22 +67,21 @@ retry:
     goto retry;
   }
   assert(rc == kOk);
-  /*
+  
   // metric logging
-  // for local machine
   caller_header->spin_lock.lock();
   NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
   auto target_kvpair = caller_header->remote_call_map.find(target_ip);
   if (target_kvpair != (caller_header->remote_call_map.end()) ){
     target_kvpair->second.first += 1;
-    target_kvpair->second.second += states_size; 
+    target_kvpair->second.second += (uint64_t)states_size; 
   }
   else{
-    caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, states_size));
+    caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, (uint64_t)states_size));
   }
   caller_header->spin_lock.unlock();
-  // end metric logging */
+  // end metric logging 
 
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
 
@@ -143,8 +142,8 @@ retry:
       1, states_size + return_span.size_bytes()));
   }
   caller_header->spin_lock.unlock();
-  // end metric gathering*/
-
+  // end metric gathering
+  */
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
   if (!optional_caller_guard) {

@@ -75,10 +75,11 @@ retry:
 
   auto target_kvpair = caller_header->remote_call_map.find(target_ip);
   if (target_kvpair != (caller_header->remote_call_map.end()) ){
-    target_kvpair->second += states_size; 
+    target_kvpair->second->first += 1;
+    target_kvpair->second->second += states_size; 
   }
   else{
-    caller_header->remote_call_map.emplace(target_ip, states_size);
+    caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, states_size));
   }
   caller_header->spin_lock.unlock();
   // end metric logging 
@@ -133,10 +134,12 @@ retry:
   auto target_kvpair = caller_header->remote_call_map.find(target_ip);
   auto return_span = return_buf.get_mut_buf();
   if (target_kvpair != (caller_header->remote_call_map.end()) ){
-    target_kvpair->second += states_size + return_span; 
+    target_kvpair->second->first += 1;
+    target_kvpair->second->second += states_size + return_span.size_bytes(); 
   }
   else{
-    caller_header->remote_call_map.emplace(target_ip, state_size + return_span);
+    caller_header->remote_call_map.emplace(target_ip, std::make_pair(
+      1, states_size + return_span.size_bytes()));
   }
   caller_header->spin_lock.unlock();
   // end metric gathering

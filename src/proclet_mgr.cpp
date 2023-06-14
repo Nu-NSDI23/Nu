@@ -50,8 +50,8 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
   std::ofstream logfile;
   logfile.open("proclet_metrics.txt", std::ios_base::app);
 
-  logfile << "# local calls: " << local_call_cnt.get() << "\n# remote calls & size:\n"
-  for (auto it = remote_call_map.begin(); it != remote_call_map.end(); it++){
+  logfile << "# local calls: " << proclet_header->local_call_cnt.get() << "\n# remote calls & size:\n"
+  for (auto it = proclet_header->remote_call_map.begin(); it != proclet_header->remote_call_map.end(); it++){
     logfile << "IP: " << it->first << "#: " << it->second->first << ", size: " << it->second->second << " bytes\n\n";
   }
   logfile.close();

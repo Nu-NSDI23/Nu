@@ -126,13 +126,14 @@ retry:
   }
   assert(rc == kOk);
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
+
+  auto return_span = return_buf.get_mut_buf();
   /*
   // metric gathering
   caller_header->spin_lock.lock();
   NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
   auto target_kvpair = caller_header->remote_call_map.find(target_ip);
-  auto return_span = return_buf.get_mut_buf();
   if (target_kvpair != (caller_header->remote_call_map.end()) ){
     target_kvpair->second.first += 1;
     target_kvpair->second.second += states_size + return_span.size_bytes(); 

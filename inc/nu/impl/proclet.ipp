@@ -68,35 +68,25 @@ retry:
     goto retry;
   }
   assert(rc == kOk);
-
-  std::ofstream logfile;
-  logfile.open("proclet_debugging.txt", std::ios_base::app);
-  logfile << "no error should happen before this\n";
   
   // metric logging
+  
   caller_header->spin_lock.lock();
-  logfile << "locked\n";
-  NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
-  logfile << "ipfound\n";
+  //NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
-  auto target_kvpair = caller_header->remote_call_map.find(target_ip);
-  logfile << "target_kvpair found\n";
+  /*auto target_kvpair = caller_header->remote_call_map.find(target_ip);
   if (target_kvpair != (caller_header->remote_call_map.end()) ){
-    logfile << "already exist, inserting\n";
     target_kvpair->second.first += 1;
-    logfile << "add 1 to first\n";
-    target_kvpair->second.second += (uint64_t)states_size; 
-    logfile << "add size to second\n";
+    target_kvpair->second.second += static_cast<uint64_t>(states_size); 
+    //target_kvpair->second.second += 1; 
   }
   else{
-    logfile << "does not exist, make new pair\n";
-    caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, (uint64_t)states_size));
-    logfile << "no pair made\n";
-  }
+    caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, static_cast<uint64_t>(states_size)));
+    //caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, 1));
+  }*/
   caller_header->spin_lock.unlock();
-  logfile << "unlocked\n";
   // end metric logging 
-
+  
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
 
   optional_caller_guard =

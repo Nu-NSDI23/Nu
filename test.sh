@@ -27,11 +27,11 @@ function prepare {
 }
 
 function run_main_server {
-    sudo stdbuf -o0 sh -c "ulimit -c unlimited; $1 -m -l $LPID -i $MAIN_SERVER_IP"
+    sudo stdbuf -o0 sh -c "$1 -m -l $LPID -i $MAIN_SERVER_IP"
 }
 
 function run_server {
-    sudo stdbuf -o0 sh -c "ulimit -c unlimited; $1 -l $LPID -i $SERVER_IP"
+    sudo stdbuf -o0 sh -c "$1 -l $LPID -i $SERVER_IP"
 }
 
 function run_test {

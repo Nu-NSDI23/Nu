@@ -132,40 +132,40 @@ retry:
     goto retry;
   }
   assert(rc == kOk);
-  get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
+  get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);  
 
-  auto return_span = return_buf.get_mut_buf();
-  
-
-  // metric gathering
-  if (caller_header){
-    NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
-
-    caller_header->spin_lock.lock();
-
-    auto target_kvpair = caller_header->remote_call_map.find(target_ip);
-    if (target_kvpair != (caller_header->remote_call_map.end()) ){
-      target_kvpair->second.first += 1;
-      target_kvpair->second.second += static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes()); 
-    }
-    else{
-      caller_header->remote_call_map.emplace(target_ip, std::make_pair(
-        1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
-    }
-    caller_header->spin_lock.unlock();
-  }
-  // end metric gathering
   
 
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
+
   if (!optional_caller_guard) {
     Migrator::migrate_thread_and_ret_val<RetT>(
         std::move(return_buf), to_proclet_id(caller_header), &ret, nullptr);
   } else {
     auto *ia_sstream = get_runtime()->archive_pool()->get_ia_sstream();
     auto &[ret_ss, ia] = *ia_sstream;
-    // now calculated above during metrics gathering auto return_span = return_buf.get_mut_buf();
+    auto return_span = return_buf.get_mut_buf();
+    
+    // metric gathering
+    if (caller_header){
+      NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
+
+      caller_header->spin_lock.lock();
+
+      auto target_kvpair = caller_header->remote_call_map.find(target_ip);
+      if (target_kvpair != (caller_header->remote_call_map.end()) ){
+        target_kvpair->second.first += 1;
+        target_kvpair->second.second += static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes()); 
+      }
+      else{
+        caller_header->remote_call_map.emplace(target_ip, std::make_pair(
+          1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
+      }
+      caller_header->spin_lock.unlock();
+    }
+  // end metric gathering
+
     ret_ss.span(
         {reinterpret_cast<char *>(return_span.data()), return_span.size()});
     if (caller_header) {

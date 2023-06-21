@@ -5,6 +5,7 @@
 
 #include "nu/proclet.hpp"
 #include "nu/runtime.hpp"
+#include "nu/dis_hash_table.hpp"
 
 using namespace nu;
 using namespace std;
@@ -22,12 +23,33 @@ using Buf = std::vector<Obj>;
 
 class Worker {
  public:
-  void foo(Buf buf, DistributedHashTable<int64_t, int64_t, I64Hasher> dis_hash, uint32_t kNumThreads) {
+  Worker(Proclet<TableDB> tabledb)
+  : _tabledb(std::move(tabledb)){}
+
+  void foo(uint32_t kNumThreads) {
     for (uint32_t i = 0; i < kNumThreads; i++){
-      assert(dis_hash.get(i).value() = i);
+      assert(_tabledb.get(i).value() = i);
     }
   }
+  private:
+    Proclet<TableDB> _tabledb;
 };
+
+class TableDB {
+  public:
+    TableDB()
+    : _map(nu::make_dis_hash_table<int64_t, int64_t, I64Hasher>(9)){
+    }
+
+    void put(int64_t key, int64_t value){
+      _map.put(key, value);
+    }
+    int64_t get(int64_t key){
+      _map.get(key).value;
+    }
+  private:
+    nu::DistributedHashTable<int64_t, int64_t, I64Hasher> _map;
+}
 
 void do_work() {
   std::vector<Proclet<Worker>> workers;
@@ -40,7 +62,7 @@ void do_work() {
 
   std::vector<rt::Thread> ths;
   for (uint32_t i = 0; i < kNumThreads; i++) {
-    ths.emplace_back([worker = std::move(workers[i]), &dis_hash]() mutable {
+    ths.emplace_back([worker = std::move(workers[i]), &dis_hash, i]() mutable {
       Buf buf;
       buf.resize(kBufSize / kObjSize);
       for (uint32_t j = 0; j < kNumInvocationsPerThread; j++) {

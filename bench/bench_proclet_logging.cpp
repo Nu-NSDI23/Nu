@@ -10,10 +10,10 @@
 using namespace nu;
 using namespace std;
 
-constexpr static uint32_t kNumThreads = 1840;
+constexpr static uint32_t kNumThreads = 10;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
-constexpr static uint32_t kNumInvocationsPerThread = 1000;
+constexpr static uint32_t kNumInvocationsPerThread = 100;
 
 struct Obj {
   uint8_t data[kObjSize];

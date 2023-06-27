@@ -57,14 +57,16 @@ class Worker {
 
 void do_work() {
   std::vector<Proclet<Worker>> workers;
-  auto dis_hash = make_proclet<TableDB>();
+  NodeIP localip = 303169795;
+  NodeIP remoteip = 303169794;
+  auto dis_hash = make_proclet<TableDB>(true, std::nullopt, localip);
 
   for (int64_t i = 0; i < kNumThreads; i++) {
     dis_hash.run(&TableDB::put, i, i);
   }
   for (int64_t i = 0; i < kNumThreads; i++) {
     workers.emplace_back(make_proclet<Worker>(
-      std::forward_as_tuple(dis_hash)
+      std::forward_as_tuple(dis_hash), false, std::nullopt, remoteip
     ));
   }
 

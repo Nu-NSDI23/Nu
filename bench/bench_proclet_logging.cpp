@@ -13,7 +13,7 @@ using namespace std;
 constexpr static uint32_t kNumThreads = 10;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
-constexpr static uint32_t kNumInvocationsPerThread = 100;
+constexpr static uint32_t kNumInvocationsPerThread = 500000;
 
 struct Obj {
   uint8_t data[kObjSize];
@@ -24,17 +24,14 @@ using Buf = std::vector<Obj>;
 
 class TableDB {
   public:
-    TableDB()
-    : _map(nu::make_dis_hash_table<int64_t, int64_t, std::hash<int64_t>>(9)){}
-
     void put(int64_t key, int64_t value){
-      _map.put(key, value);
+      _map[key] = value;
     }
     int64_t get(int64_t key){
-      return _map.get(key).value();
+      return _map[key];
     }
   private:
-    nu::DistributedHashTable<int64_t, int64_t, std::hash<int64_t>> _map;
+    std::unordered_map<int64_t, int64_t> _map;
 };
 
 

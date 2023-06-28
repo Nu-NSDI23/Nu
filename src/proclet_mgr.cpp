@@ -13,8 +13,8 @@ extern "C" {
 #include "nu/runtime.hpp"
 #include "nu/proclet_mgr.hpp"
 
-#include <fstream> // FOR DEBUGGING
-#include <unordered_map> // FOR DEBUGGING
+//#include <fstream> // FOR DEBUGGING
+//#include <unordered_map> // FOR DEBUGGING
 
 namespace nu {
 
@@ -50,6 +50,7 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
     while (unlikely(proclet_header->slab_ref_cnt.get())) {
       get_runtime()->caladan()->thread_yield();
     }
+    /*
     // dumping logs
     std::ofstream logfile;
     logfile.open("proclet_metrics.txt", std::ios_base::app);
@@ -60,7 +61,7 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
     }
     logfile << "----------------------------\n";
     logfile.close();
-    // end dumping logs
+    // end dumping logs*/
   }
 
   // Deregister its slab ID.

@@ -57,6 +57,7 @@ class Worker {
 
 void do_work() {
   std::vector<Proclet<Worker>> workers;
+  // only works when main server is started with ip 18.18.1.3, remote server started with 18.18.1.2
   NodeIP localip = 303169795;
   NodeIP remoteip = 303169794;
   auto dis_hash = make_proclet<TableDB>(true, std::nullopt, localip);

@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <utility>
 #include <unordered_map>
-#include <fstream> // debugging
+// #include <fstream> // debugging
 
 extern "C" {
 #include <base/assert.h>
@@ -85,17 +85,6 @@ retry:
       ProcletSlabGuard slab_guard(&caller_header->slab);
       NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
-      /*if (caller_header->remote_call_map.contains(target_ip)){
-        // has race condition, fix
-        caller_header->remote_call_map.get(target_ip).first += 1;
-        caller_header->remote_call_map.get(target_ip).second += 
-          static_cast<uint64_t>(states_size);
-      }
-      else{
-        caller_header->remote_call_map.put(target_ip, std::make_pair(
-          1, static_cast<uint64_t>(states_size)));
-      }*/
-    
       caller_header->spin_lock.lock();
 
       auto target_kvpair = caller_header->remote_call_map.find(target_ip);
@@ -162,17 +151,6 @@ retry:
     if (caller_header){
       ProcletSlabGuard slab_guard(&caller_header->slab);
       NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
-
-      /*if (caller_header->remote_call_map.contains(target_ip)){
-        // has race condition, fix
-        caller_header->remote_call_map.get(target_ip).first += 1;
-        caller_header->remote_call_map.get(target_ip).second += 
-          static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes());
-      }
-      else{
-        caller_header->remote_call_map.put(target_ip, std::make_pair(
-          1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
-      }*/
 
       caller_header->spin_lock.lock();
 
@@ -384,11 +362,11 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
             reinterpret_cast<StatesTuple *>(alloca(sizeof(StatesTuple)));
         new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
-        caller_migration_guard.reset();
-
+            
         // local call count recording for caller
         caller_header->local_call_cnt.inc_unsafe();
-        // callee_header->local_call_cnt.inc_unsafe();
+
+        caller_migration_guard.reset();
 
         if constexpr (kHasRetVal) {
           ProcletServer::run_closure_locally<MigrEn, CPUMon, CPUSamp, T, RetT,

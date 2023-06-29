@@ -43,6 +43,7 @@ for i in range(0, params.n):
 # link 0
 link_0 = request.Link('link-0')
 link_0.Site('undefined')
+link_0.bandwidth = params.link_0_bw * 1000000
 if params.no_inter_switch:
     link_0.setNoInterSwitchLinks()
 for iface in ifaces_0:
@@ -51,6 +52,7 @@ for iface in ifaces_0:
 # link 1
 link_1 = request.Link('link-1')
 link_1.Site('undefined')
+link_1.bandwidth = params.link_1_bw * 1000000
 if params.no_inter_switch:
     link_1.setNoInterSwitchLinks()
 for iface in ifaces_1:

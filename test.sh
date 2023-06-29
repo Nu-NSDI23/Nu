@@ -81,6 +81,7 @@ function cleanup {
 }
 
 function force_cleanup {
+    echo -e "\nPlease wait for proper cleanups..."
     kill_process test_
     kill_controller
     cleanup

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 EXP_SHARED_SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source $EXP_SHARED_SCRIPT_DIR/../setup.sh
-
 NU_DIR=$EXP_SHARED_SCRIPT_DIR/..
 CALADAN_DIR=$NU_DIR/caladan
+
+source $EXP_SHARED_SCRIPT_DIR/../setup.sh
 
 function ssh_ip() {
     if [ -z "$ssh_ip_prefix" ]
@@ -178,13 +178,17 @@ function cleanup() {
                           sudo pkill -9 kmeans;
                           sudo pkill -9 python3;
                           sudo pkill -9 BackEndService;"
-	ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' \
-                          | xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
+	if [ -n "$nic_dev" ]
+	then
+            ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' | \
+                              xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
+	fi
 	ssh $(ssh_ip $i) "cd `pwd`; rm -rf .nu_libs*"
     done
 }
 
 function force_cleanup() {
+    echo -e "\nPlease wait for proper cleanups..."
     cleanup
     sudo pkill -9 run.sh
     exit 1

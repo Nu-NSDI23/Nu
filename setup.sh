@@ -28,6 +28,8 @@ function setup_dropless_rq {
     sudo ethtool --set-priv-flags $nic_dev dropless_rq on
 }
 
+trap -- '' INT TERM
+
 setup_caladan
 get_nic_dev
 setup_jumbo_frame

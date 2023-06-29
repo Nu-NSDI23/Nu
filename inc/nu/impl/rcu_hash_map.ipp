@@ -27,7 +27,10 @@ template <typename K, typename V, typename Allocator>
 template <typename K1, typename V1>
 inline void RCUHashMap<K, V, Allocator>::put(K1 &&k, V1 &&v) {
   lock_.writer_lock();
-  map_.emplace(std::forward<K1>(k), std::forward<V1>(v));
+  auto p = map_.try_emplace(std::forward<K1>(k), std::forward<V1>(v));
+  if (!p.second) {
+    p.first->second = std::forward<V1>(v);
+  }
   lock_.writer_unlock();
 }
 

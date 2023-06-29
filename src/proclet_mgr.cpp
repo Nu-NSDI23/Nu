@@ -51,7 +51,7 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
       get_runtime()->caladan()->thread_yield();
     }
     /*
-    // dumping logs
+    // dumping logs for debugging purposes
     std::ofstream logfile;
     logfile.open("proclet_metrics.txt", std::ios_base::app);
 

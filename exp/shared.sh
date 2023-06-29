@@ -7,8 +7,14 @@ NU_DIR=$EXP_SHARED_SCRIPT_DIR/..
 CALADAN_DIR=$NU_DIR/caladan
 
 function ssh_ip() {
+    if [ -z "$ssh_ip_prefix" ]
+    then
+        ssh_ip_prefix=`ifconfig | grep "10\.10\." -B 1 --no-group-separator |
+                                  sed 'N;s/\n/ /' | grep -v $nic_dev |
+                                  awk '{print $6}' | head -c -2`
+    fi
     srv_idx=$1
-    echo "10.10.1."$srv_idx
+    echo $ssh_ip_prefix$srv_idx
 }
 
 function caladan_srv_ip() {

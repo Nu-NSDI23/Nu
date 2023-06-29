@@ -70,7 +70,7 @@ void do_work() {
   for (auto &future : futures) {
     future.get();
   }
-  
+
   bool passed = (proclet.run(&Test::get_credits) == 0);
 
   if (passed) {
@@ -78,9 +78,6 @@ void do_work() {
   } else {
     std::cout << "Failed" << std::endl;
   }
-  
- //int credits = (proclet.run(&Test::get_credits));
- //std::cout << "Credits: " << credits << std::endl;
 }
 
 int main(int argc, char **argv) {

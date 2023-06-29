@@ -91,11 +91,9 @@ retry:
       if (target_kvpair != (caller_header->remote_call_map.end()) ){
         target_kvpair->second.first += 1;
         target_kvpair->second.second += static_cast<uint64_t>(states_size); 
-        //target_kvpair->second.second += 1; 
       }
       else{
         caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, static_cast<uint64_t>(states_size)));
-        //caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, 1));
       }
       caller_header->spin_lock.unlock();
     }
@@ -363,7 +361,7 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
         new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
             
-        // local call count recording for caller
+        // increment local call counter
         caller_header->local_call_cnt.inc_unsafe();
 
         caller_migration_guard.reset();

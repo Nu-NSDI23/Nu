@@ -85,9 +85,6 @@ struct ProcletHeader {
   // Synchronized using spin_lock
   std::unordered_map<NodeIP, std::pair<uint32_t, uint64_t>> remote_call_map;
 
-  // Used for storing amount and total data size of outgoing remote calls to every NodeIP
-  //PartitionedSpinHashMap<NodeIP, std::pair<uint32_t, uint64_t>> remote_call_map;
-
   // Heap mem allocator. Must be the last field.
   Counter slab_ref_cnt;
   SlabAllocator slab;

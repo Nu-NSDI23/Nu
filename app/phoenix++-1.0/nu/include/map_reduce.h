@@ -448,7 +448,7 @@ void MapReduce<Impl, D, K, V, Combiner, Hash>::for_all_worker_threads(
     auto &proclets = proclet_iter->second;
     for (size_t i = 0; i < ips.size(); i++) {
       auto ip = ips[i];
-      auto worker_thread = proclets[i];
+      auto &worker_thread = proclets[i];
       if (unlikely(ip != rpc_client_mgr->get_ip_by_proclet_id(
                              worker_thread.get_id()))) {
         update_loc_futures.emplace_back(

@@ -52,7 +52,7 @@ function start_iokerneld() {
 
 function start_ctrl() {
     srv_idx=$1
-    ssh $(ssh_ip $srv_idx) "sudo $NU_DIR/bin/ctrl_main" &
+    ssh $(ssh_ip $srv_idx) "sudo stdbuf -o0 $NU_DIR/bin/ctrl_main" &
 }
 
 function __start_server() {
@@ -83,10 +83,10 @@ function __start_server() {
     if [[ $main -eq 0 ]]
     then
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -l $lpid -i $ip -p $spin_ks $isol_cmd"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -l $lpid -i $ip -p $spin_ks $isol_cmd"
     else
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name $file_path -m -l $lpid -i $ip -p $spin_ks $isol_cmd"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -m -l $lpid -i $ip -p $spin_ks $isol_cmd"
     fi
 }
 
@@ -177,7 +177,8 @@ function cleanup() {
                           sudo pkill -9 memcached;
                           sudo pkill -9 kmeans;
                           sudo pkill -9 python3;
-                          sudo pkill -9 BackEndService;"
+                          sudo pkill -9 BackEndService;
+                          sudo pkill -9 bench;"
 	if [ -n "$nic_dev" ]
 	then
             ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' | \

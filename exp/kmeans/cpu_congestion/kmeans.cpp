@@ -31,6 +31,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <limits>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <vector>
@@ -146,6 +147,17 @@ public:
   }
 };
 
+bool signalled = false;
+
+void wait_for_signal() {
+  while (!rt::access_once(signalled)) {
+    timer_sleep(100);
+  }
+  rt::access_once(signalled) = false;
+}
+
+void signal_handler(int signum) { rt::access_once(signalled) = true; }
+
 void real_main(int argc, char **argv) {
   std::vector<point> local_means;
   for (int i = 0; i < kNumMeans; i++) {
@@ -156,6 +168,8 @@ void real_main(int argc, char **argv) {
   printf("KMeans: Calling MapReduce Scheduler\n");
 
   KmeansMR mapReduce(kNumWorkerThreads);
+  printf("KMeans: Wait for Signal\n");
+  wait_for_signal();
 
   std::vector<task_id> tasks;
   for (int i = 0; i < kNumPoints; i++) {
@@ -206,11 +220,15 @@ void real_main(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+  signal(SIGHUP, signal_handler);
+
   srand(0);
   for (int i = 0; i < kNumPoints; i++) {
     points.emplace_back();
     points.back().generate();
   }
+  printf("Init Finished\n");
+
   nu::runtime_main_init(argc, argv,
                         [](int argc, char **argv) { real_main(argc, argv); });
 }

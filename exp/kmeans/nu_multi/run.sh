@@ -7,7 +7,7 @@ caladan_use_small_rto # Cloudlab's amd instances are buggy and drop pkts from ti
 CTL_IDX=32
 CLT_IDX=31
 LPID=1
-SPIN_KS=23
+KS=23
 
 DIR=`pwd`
 PHOENIX_DIR=$DIR/../../../app/phoenix++-1.0/nu
@@ -38,12 +38,12 @@ do
     for srv_idx in `seq 1 $num_srvs`
     do
 	distribute kmeans $srv_idx
-        start_server kmeans $srv_idx $LPID $SPIN_KS &
+        start_server kmeans $srv_idx $LPID $KS &
     done
 
     sleep 5
     distribute kmeans $CLT_IDX
-    start_main_server_isol kmeans $CLT_IDX $LPID $SPIN_KS >$DIR/logs/$num_srvs &
+    start_main_server_isol kmeans $CLT_IDX $LPID $KS >$DIR/logs/$num_srvs &
     ( tail -f -n0 $DIR/logs/$num_srvs & ) | grep -q "iter = 10"
 
     cleanup

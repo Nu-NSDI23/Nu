@@ -25,18 +25,10 @@ constexpr uint32_t kValLen = 2;
 constexpr double kLoadFactor = 0.30;
 constexpr uint32_t kPrintIntervalUS = 1000 * 1000;
 constexpr uint32_t kNumProxies = 1;
-constexpr uint32_t kProxyIps[] = {
-    MAKE_IP_ADDR(18, 18, 1, 2),  MAKE_IP_ADDR(18, 18, 1, 3),
-    MAKE_IP_ADDR(18, 18, 1, 4),  MAKE_IP_ADDR(18, 18, 1, 5),
-    MAKE_IP_ADDR(18, 18, 1, 6),  MAKE_IP_ADDR(18, 18, 1, 7),
-    MAKE_IP_ADDR(18, 18, 1, 8),  MAKE_IP_ADDR(18, 18, 1, 9),
-    MAKE_IP_ADDR(18, 18, 1, 10), MAKE_IP_ADDR(18, 18, 1, 11),
-    MAKE_IP_ADDR(18, 18, 1, 12), MAKE_IP_ADDR(18, 18, 1, 13),
-    MAKE_IP_ADDR(18, 18, 1, 14), MAKE_IP_ADDR(18, 18, 1, 15),
-    MAKE_IP_ADDR(18, 18, 1, 16)};
 constexpr uint32_t kProxyPort = 10086;
 constexpr uint32_t kNumThreads = 500;
 
+uint32_t proxyIPs[kNumProxies];
 rt::TcpConn *conns[kNumProxies][kNumThreads];
 
 RCUHashMap<uint32_t, uint32_t> shard_id_to_proxy_id_map_;
@@ -114,10 +106,10 @@ void hashtable_get(uint32_t tid, const Req &req) {
   Resp resp;
   BUG_ON(conns[proxy_id][tid]->ReadFull(&resp, sizeof(resp)) <= 0);
   if (resp.latest_shard_ip) {
-    auto proxy_ip_ptr = std::find(std::begin(kProxyIps), std::end(kProxyIps),
+    auto proxy_ip_ptr = std::find(std::begin(proxyIPs), std::end(proxyIPs),
                                   resp.latest_shard_ip);
-    BUG_ON(proxy_ip_ptr == std::end(kProxyIps));
-    uint32_t proxy_id = proxy_ip_ptr - std::begin(kProxyIps);
+    BUG_ON(proxy_ip_ptr == std::end(proxyIPs));
+    uint32_t proxy_id = proxy_ip_ptr - std::begin(proxyIPs);
     shard_id_to_proxy_id_map_.put(req.shard_id, proxy_id);
   }
 }
@@ -153,7 +145,11 @@ void benchmark(std::vector<Req> *reqs) {
 
 void init_tcp() {
   for (uint32_t i = 0; i < kNumProxies; i++) {
-    netaddr raddr = {.ip = kProxyIps[i], .port = kProxyPort};
+    proxyIPs[i] = MAKE_IP_ADDR(18, 18, 1, i + 2);
+  }
+
+  for (uint32_t i = 0; i < kNumProxies; i++) {
+    netaddr raddr = {.ip = proxyIPs[i], .port = kProxyPort};
     for (uint32_t j = 0; j < kNumThreads; j++) {
       conns[i][j] =
           rt::TcpConn::DialAffinity(j % rt::RuntimeMaxCores(), raddr);

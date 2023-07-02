@@ -60,13 +60,19 @@ function __start_server() {
     srv_idx=$2
     lpid=$3
     main=$4
-    if [ -z "$5" ]
+    if [[ $5 -eq 0 ]]
+    then
+	ks_cmd=""
+    else
+	ks_cmd="-k $5"
+    fi
+    if [[ $6 -eq 0 ]]
     then
 	spin_ks=0
     else
-	spin_ks=$5
+	spin_ks=$6
     fi
-    if [[ $6 -eq 0 ]]
+    if [[ $7 -eq 0 ]]
     then
         isol_cmd=""
     else
@@ -83,23 +89,23 @@ function __start_server() {
     if [[ $main -eq 0 ]]
     then
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -l $lpid -i $ip -p $spin_ks $isol_cmd"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -l $lpid -i $ip $ks_cmd -p $spin_ks $isol_cmd"
     else
 	ssh $(ssh_ip $srv_idx) "cd `pwd`;
-                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -m -l $lpid -i $ip -p $spin_ks $isol_cmd"
+                                sudo LD_LIBRARY_PATH=$nu_libs_name stdbuf -o0 $file_path -m -l $lpid -i $ip $ks_cmd -p $spin_ks $isol_cmd"
     fi
 }
 
 function start_server() {
-    __start_server $1 $2 $3 0 $4 $5 0
+    __start_server $1 $2 $3 0 $4 $5 $6 0
 }
 
 function start_main_server() {
-    __start_server $1 $2 $3 1 $4 $5 0
+    __start_server $1 $2 $3 1 $4 $5 $6 0
 }
 
 function start_main_server_isol() {
-    __start_server $1 $2 $3 1 $4 $5 1
+    __start_server $1 $2 $3 1 $4 $5 $6 1
 }
 
 function run_program() {

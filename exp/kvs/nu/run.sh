@@ -7,10 +7,11 @@ SRV_IDX=2
 CLT_START_IDX=3
 NUM_CLTS=2
 LPID=1
+KS=26
 
 DIR=`pwd`
 
-mops=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 )
+mops=( 1 2 3 4 5 6 7 8 9 10 11 12 13 )
 
 get_clt_idx() {
     echo `expr $1 + $CLT_START_IDX - 1`
@@ -31,7 +32,7 @@ do
     sleep 5
     start_ctrl $CTL_IDX
     sleep 5
-    start_main_server server $SRV_IDX $LPID >logs/.tmp &
+    start_main_server server $SRV_IDX $LPID $KS $KS >logs/.tmp &
     ( tail -f -n0 logs/.tmp & ) | grep -q "finish initing"
     for i in `seq 1 $NUM_CLTS`
     do

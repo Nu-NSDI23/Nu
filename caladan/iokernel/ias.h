@@ -18,7 +18,7 @@
 /* the low watermark used to detect memory pressure */
 #define IAS_PS_MEM_LOW_MB 		1024
 /* the threshold of cpu pressure duration to trigger migration */
-#define IAS_PS_CPU_THRESH_US            500
+#define IAS_PS_CPU_THRESH_US            2000
 /* the interval to trigger PS subcontroller */
 #define IAS_PS_INTERVAL_US              500
 /* the interval to trigger RP subcontroller */

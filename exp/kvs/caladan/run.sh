@@ -8,7 +8,7 @@ NUM_CLTS=2
 
 DIR=`pwd`
 
-mops=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 )
+mops=( 1 2 3 4 5 6 7 8 9 10 11 12 13 )
 
 get_clt_idx() {
     echo `expr $1 + $CLT_START_IDX - 1`

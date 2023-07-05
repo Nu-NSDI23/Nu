@@ -24,7 +24,7 @@ using namespace nu;
 
 constexpr uint32_t kKeyLen = 20;
 constexpr uint32_t kValLen = 2;
-constexpr double kLoadFactor = 0.30;
+constexpr double kLoadFactor = 0.20;
 constexpr uint32_t kPrintIntervalUS = 1000 * 1000;
 constexpr uint32_t kProxyIp = MAKE_IP_ADDR(18, 18, 1, 2);
 constexpr uint32_t kProxyPort = 10086;
@@ -32,7 +32,7 @@ constexpr static netaddr kClientAddrs[] = {
     {.ip = MAKE_IP_ADDR(18, 18, 1, 3), .port = 9000},
     {.ip = MAKE_IP_ADDR(18, 18, 1, 4), .port = 9000},
 };
-constexpr uint32_t kNumThreads = 200;
+constexpr uint32_t kNumThreads = 500;
 constexpr double kTargetMops = 1;
 constexpr uint32_t kWarmupUs = 1 * kOneSecond;
 constexpr uint32_t kDurationUs = 15 * kOneSecond;

@@ -83,17 +83,16 @@ retry:
     // metric logging
     if (caller_header){
       ProcletSlabGuard slab_guard(&caller_header->slab);
-      NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
       caller_header->spin_lock.lock();
 
-      auto target_kvpair = caller_header->remote_call_map.find(target_ip);
+      auto target_kvpair = caller_header->remote_call_map.find(id);
       if (target_kvpair != (caller_header->remote_call_map.end()) ){
         target_kvpair->second.first += 1;
         target_kvpair->second.second += static_cast<uint64_t>(states_size); 
       }
       else{
-        caller_header->remote_call_map.emplace(target_ip, std::make_pair(1, static_cast<uint64_t>(states_size)));
+        caller_header->remote_call_map.emplace(id, std::make_pair(1, static_cast<uint64_t>(states_size)));
       }
       caller_header->spin_lock.unlock();
     }
@@ -148,18 +147,17 @@ retry:
     // metric gathering
     if (caller_header){
       ProcletSlabGuard slab_guard(&caller_header->slab);
-      NodeIP target_ip = get_runtime()->rpc_client_mgr()->get_ip_by_proclet_id(id);
 
       caller_header->spin_lock.lock();
 
-      auto target_kvpair = caller_header->remote_call_map.find(target_ip);
+      auto target_kvpair = caller_header->remote_call_map.find(id);
       if (target_kvpair != (caller_header->remote_call_map.end()) ){
         target_kvpair->second.first += 1;
         target_kvpair->second.second += 
           static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes()); 
       }
       else{
-        caller_header->remote_call_map.emplace(target_ip, std::make_pair(
+        caller_header->remote_call_map.emplace(id, std::make_pair(
           1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
       }
       caller_header->spin_lock.unlock();

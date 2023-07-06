@@ -81,9 +81,9 @@ struct ProcletHeader {
   // Used for monitoring total amount of local calls, estimate total bytes for performance
   Counter local_call_cnt;
 
-  // stores amount and total data size of outgoing remote calls to every NodeIP (machine)
+  // stores amount and total data size of outgoing remote calls to every remote proclet marked by their ProcletID 
   // Synchronized using spin_lock
-  std::unordered_map<NodeIP, std::pair<uint32_t, uint64_t>> remote_call_map;
+  std::unordered_map<ProcletID, std::pair<uint32_t, uint64_t>> remote_call_map;
 
   // Heap mem allocator. Must be the last field.
   Counter slab_ref_cnt;

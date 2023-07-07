@@ -2,9 +2,9 @@ host_addr 18.18.1.105
 host_netmask 255.255.255.0
 host_gateway 18.18.1.1
 host_mtu 9000
-runtime_kthreads 46
+runtime_kthreads 26
 runtime_guaranteed_kthreads 0
-runtime_spinning_kthreads 46
+runtime_spinning_kthreads 26
 runtime_qdelay_us 0
 enable_directpath 1
 log_level 0

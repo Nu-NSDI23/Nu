@@ -5,6 +5,7 @@ source ../../shared.sh
 CTL_IDX=32
 SRV_START_IDX=1
 LPID=1
+KS=26
 
 DIR=`pwd`
 
@@ -47,10 +48,10 @@ do
 
 	if [[ $i -ne $num_srvs ]]
 	then
-	    start_server server $srv_idx $LPID &
+	    start_server server $srv_idx $LPID $KS $KS &
 	else
 	    sleep 5
-	    start_main_server server $srv_idx $LPID >logs/.tmp &
+	    start_main_server server $srv_idx $LPID $KS $KS >logs/.tmp &
 	fi
     done
     ( tail -f -n0 logs/.tmp & ) | grep -q "finish initing"

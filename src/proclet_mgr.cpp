@@ -57,7 +57,7 @@ void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
 
     logfile << "From proclet: " << proclet_base << "\n# local calls: " << proclet_header->local_call_cnt.get() << "\n# remote calls & size:\n";
     for (auto it = proclet_header->remote_call_map.begin(); it != proclet_header->remote_call_map.end(); it++){
-      logfile << "IP: " << it->first << "#: " << it->second.first << ", size: " << it->second.second << " bytes\n";
+      logfile << "Proclet ID: " << it->first << "#: " << it->second.first << ", size: " << it->second.second << " bytes\n";
     }
     logfile << "----------------------------\n";
     logfile.close();

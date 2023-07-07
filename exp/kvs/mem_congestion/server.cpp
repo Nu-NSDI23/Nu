@@ -21,8 +21,9 @@
 constexpr uint32_t kKeyLen = 20;
 constexpr uint32_t kValLen = 2;
 constexpr double kLoadFactor = 0.30;
-constexpr uint32_t kNumProxies = 1;
+constexpr uint32_t kNumProxies = 6;
 constexpr uint32_t kProxyPort = 10086;
+constexpr uint32_t kPowerNumShards = 15;
 
 struct Key {
   char data[kKeyLen];
@@ -62,9 +63,8 @@ constexpr static auto kFarmHashKeytoU64 = [](const Key &key) {
 using DSHashTable =
     nu::DistributedHashTable<Key, Val, decltype(kFarmHashKeytoU64)>;
 
-constexpr static size_t kNumPairs = (1 << DSHashTable::kDefaultPowerNumShards) *
-                                    DSHashTable::kNumBucketsPerShard *
-                                    kLoadFactor;
+constexpr static size_t kNumPairs =
+    (1 << kPowerNumShards) * DSHashTable::kNumBucketsPerShard * kLoadFactor;
 
 void random_str(auto &dist, auto &mt, uint32_t len, char *buf) {
   for (uint32_t i = 0; i < len; i++) {
@@ -136,8 +136,10 @@ class Proxy {
 
 void do_work() {
   DSHashTable hash_table =
-      nu::make_dis_hash_table<Key, Val, decltype(kFarmHashKeytoU64)>();
+      nu::make_dis_hash_table<Key, Val, decltype(kFarmHashKeytoU64)>(
+          kPowerNumShards);
   init(&hash_table);
+  std::cout << "finish initing..." << std::endl;
 
   std::vector<nu::Future<void>> futures;
   nu::Proclet<Proxy> proxies[kNumProxies];
@@ -146,7 +148,6 @@ void do_work() {
         nu::make_proclet<Proxy>(std::forward_as_tuple(hash_table), true);
     futures.emplace_back(proxies[i].run_async(&Proxy::run_loop));
   }
-  std::cout << "finish initing..." << std::endl;
   futures.front().get();
 }
 

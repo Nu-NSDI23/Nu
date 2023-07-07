@@ -82,7 +82,7 @@ std::vector<Trace> Perf::benchmark(
         trace.absl_start_us = microtime();
         trace.start_us = trace.absl_start_us - start_us;
         bool ok = adapter_.serve_req(thread_state, req.req.get());
-        trace.duration_us = microtime() - start_us - req.start_us;
+        trace.duration_us = microtime() - start_us - trace.start_us;
         if (ok) {
           traces.push_back(trace);
         }

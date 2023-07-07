@@ -9,6 +9,12 @@ extern "C" {
 
 namespace nu {
 
+// According to the ASPLOS'15 "Temporally Bounding TSO for Fence-Free Asymmetric
+// Synchronization" paper, mostly all stores issued by the cores within
+// the same processor become visible after 5 microseconds.
+constexpr bool kUseTBTSO = true;
+constexpr uint32_t kTemporalBoundUs = 5;
+
 RCULock::RCULock() : flag_(false) {
   memset(aligned_cnts_, 0, sizeof(aligned_cnts_));
 }
@@ -70,12 +76,19 @@ retry:
 }
 
 void RCULock::writer_sync(bool poll) {
-  membarrier();
+  if constexpr (kUseTBTSO) {
+    delay_us(kTemporalBoundUs);
+  } else {
+    membarrier();  // This impacts the tail latency as it has to interrupt all
+                   // cores.
+  }
+
   {
     ScopedLock g(&mutex_);
     flip_and_wait(poll);
     flip_and_wait(poll);
   }
+
   mb();
 }
 

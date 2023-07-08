@@ -23,7 +23,7 @@ constexpr uint32_t kValLen = 2;
 constexpr double kLoadFactor = 0.30;
 constexpr uint32_t kNumProxies = 6;
 constexpr uint32_t kProxyPort = 10086;
-constexpr uint32_t kPowerNumShards = 15;
+constexpr uint32_t kPowerNumShards = 16;
 
 struct Key {
   char data[kKeyLen];

@@ -39,6 +39,7 @@ class PressureHandler {
   constexpr static uint32_t kNumAuxHandlers =
       Migrator::kTransmitProcletNumThreads - 1;
   constexpr static uint32_t kSortedProcletsUpdateIntervalMs = 200;
+  constexpr static uint32_t kUpdateBudget = 200;
   constexpr static uint32_t kHandlerSleepUs = 100;
   constexpr static uint32_t kMinNumProcletsOnCPUPressure = 32;
 

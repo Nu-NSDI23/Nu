@@ -58,6 +58,8 @@ void PressureHandler::update_sorted_proclets() {
   auto new_cpu_pressure_sorted_proclets =
       std::make_shared<decltype(cpu_pressure_sorted_proclets_)::element_type>();
   auto all_proclets = get_runtime()->proclet_manager()->get_all_proclets();
+
+  auto used_budget = 0;
   for (auto *proclet_base : all_proclets) {
     auto *proclet_header = reinterpret_cast<ProcletHeader *>(proclet_base);
     auto optional_info = get_runtime()->proclet_manager()->get_proclet_info(
@@ -73,6 +75,11 @@ void PressureHandler::update_sorted_proclets() {
         new_cpu_pressure_sorted_proclets->insert(u);
         new_mem_pressure_sorted_proclets->insert(u);
       }
+    }
+
+    if (++used_budget == kUpdateBudget) {
+      used_budget = 0;
+      rt::Yield();
     }
   }
 

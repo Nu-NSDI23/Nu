@@ -171,6 +171,20 @@ function caladan_use_default_rto() {
     popd
 }
 
+function disable_kernel_bg_prezero() {
+    for i in `seq 1 $num_nodes`
+    do
+	ssh $(ssh_ip $i) "sudo bash -c \"echo 1000000 > /sys/kernel/mm/zero_page/delay_millisecs\""
+    done
+}
+
+function enable_kernel_bg_prezero() {
+    for i in `seq 1 $num_nodes`
+    do
+	ssh $(ssh_ip $i) "sudo bash -c \"echo 1000 > /sys/kernel/mm/zero_page/delay_millisecs\""
+    done
+}
+
 function cleanup() {
     for i in `seq 1 $num_nodes`
     do

@@ -21,6 +21,8 @@ get_clt_idx() {
     echo `expr $1 + $NUM_SRVS`
 }
 
+disable_kernel_bg_prezero
+
 start_iokerneld $CTL_IDX
 for i in `seq 1 $NUM_SRVS`
 do
@@ -78,5 +80,6 @@ run_cmd $VICTIM_IDX "sleep 20; sudo pkill -SIGHUP bench"
     
 wait $client_pids
 scp $(ssh_ip $(get_clt_idx 1)):`pwd`/timeseries $DIR/logs/
-    
+
+enable_kernel_bg_prezero
 cleanup

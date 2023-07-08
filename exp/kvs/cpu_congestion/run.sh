@@ -5,10 +5,11 @@ source ../../shared.sh
 NUM_SRVS=15
 NUM_CLTS=$NUM_SRVS
 SRV_START_IDX=1
-VICTIM_IDX=$NUM_SRVS
+VICTIM_IDX=`expr $NUM_SRVS - 1`
 CTL_IDX=`expr $NUM_SRVS + $NUM_CLTS + 1`
 LPID=1
 KS=26
+SPIN_KS=`expr $KS / 2`
 
 DIR=`pwd`
 
@@ -48,19 +49,19 @@ do
 
     if [[ $i -ne $NUM_SRVS ]]
     then
-	start_server server $srv_idx $LPID $KS $KS >logs/srv_$i &
+	start_server server $srv_idx $LPID $KS $SPIN_KS >logs/srv_$i &
     else
 	sleep 5
-	start_main_server server $srv_idx $LPID $KS $KS >logs/main &
+	start_main_server server $srv_idx $LPID $KS $SPIN_KS >logs/main &
     fi
 done
 
 ( tail -f -n0 logs/main & ) | grep -q "finish initing"
 
-mem_antagonist=$NU_DIR/bin/bench_real_mem_pressure
-distribute $mem_antagonist $VICTIM_IDX
+cpu_antagonist=$NU_DIR/bin/bench_real_cpu_pressure
+distribute $cpu_antagonist $VICTIM_IDX
 antagonist_log=$DIR/logs/antagonist
-run_program $mem_antagonist $VICTIM_IDX $DIR/conf/antagonist.conf >$antagonist_log &
+run_program $cpu_antagonist $VICTIM_IDX $DIR/conf/antagonist.conf >$antagonist_log &
 antagonist_pid=$!
 ( tail -f -n0 $antagonist_log & ) | grep -q "waiting for signal"
 
@@ -77,9 +78,5 @@ run_cmd $VICTIM_IDX "sleep 20; sudo pkill -SIGHUP bench"
     
 wait $client_pids
 scp $(ssh_ip $(get_clt_idx 1)):`pwd`/timeseries $DIR/logs/
-
-run_cmd $VICTIM_IDX "sudo pkill -SIGHUP bench"
-wait $antagonist_pid
-scp $(ssh_ip $VICTIM_IDX):`pwd`/*traces $DIR/logs/
     
 cleanup

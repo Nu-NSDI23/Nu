@@ -14,7 +14,7 @@ constexpr static uint32_t kNumProclets = 100;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
 constexpr static uint32_t kNumInvocationsPerProclet = 10;
-constexpr static uint32_t kNumThreadsPerProclet = 500;
+constexpr static uint32_t kNumThreadsPerProclet = 20;
 
 struct Obj {
   uint8_t data[kObjSize];
@@ -45,10 +45,8 @@ class Worker {
     std::vector<rt::Thread> threads;
     threads.reserve(kNumThreadsPerProclet);
 
-    //auto start = rdtsc();
-    //uint64_t starts_tid[kNumThreadsPerProclet];
     for (uint32_t i = 0; i < kNumThreadsPerProclet; i++) {
-      threads.emplace_back([&] {
+      threads.emplace_back([&, kNumProclets] {
         for (int64_t i = 0; i < kNumProclets; i++){
           int64_t v = _tabledb.run(&TableDB::get, i);
           if (v != i){

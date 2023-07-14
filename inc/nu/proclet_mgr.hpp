@@ -69,6 +69,11 @@ struct ProcletHeader {
   // Logical timer.
   Time time;
 
+  // tracks total remote data requested and total cycles elapsed for compute intensity
+  uint64_t total_data;
+  uint64_t total_cycles;
+  uint64_t last_cycles;
+
   //--- Fields below will be automatically copied during migration. ---/
   uint8_t copy_start[0];
 

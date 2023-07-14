@@ -16,6 +16,7 @@ class CPULoad {
   void start_monitor_no_sampling();
   bool is_monitoring() const;
   float get_load() const;
+  uint64_t get_total_cycles() const;
   void zero();
   static void end_monitor();
   static void flush_all();

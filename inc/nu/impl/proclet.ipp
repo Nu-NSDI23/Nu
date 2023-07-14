@@ -94,6 +94,13 @@ retry:
       else{
         caller_header->remote_call_map.emplace(id, std::make_pair(1, static_cast<uint64_t>(states_size)));
       }
+
+      // compute intensity data logging
+      caller_header->total_data += static_cast<uint64_t>(states_size);
+      uint64_t curr_total_cycle = caller_header->cpu_load.get_total_cycles();
+      caller_header->total_cycles += curr_total_cycle - caller_header->last_cycles;
+      caller_header->last_cycles = curr_total_cycle;
+
       caller_header->spin_lock.unlock();
     }
     // end metric logging 
@@ -160,6 +167,13 @@ retry:
         caller_header->remote_call_map.emplace(id, std::make_pair(
           1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
       }
+
+      // compute intensity data logging
+      caller_header->total_data += static_cast<uint64_t>(states_size);
+      uint64_t curr_total_cycle = caller_header->cpu_load.get_total_cycles();
+      caller_header->total_cycles += curr_total_cycle - caller_header->last_cycles;
+      caller_header->last_cycles = curr_total_cycle;
+
       caller_header->spin_lock.unlock();
 
     }

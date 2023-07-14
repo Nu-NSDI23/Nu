@@ -10,12 +10,12 @@
 using namespace nu;
 using namespace std;
 
-constexpr static uint32_t kNumProclets = 10;
+constexpr static uint32_t kNumProclets = 2;
 constexpr static uint32_t kNumTableEntries = 1000000;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
 constexpr static uint32_t kNumInvocationsPerProclet = 10;
-constexpr static uint32_t kNumThreadsPerProclet = 20;
+constexpr static uint32_t kNumThreadsPerProclet = 5;
 
 struct Obj {
   uint8_t data[kObjSize];
@@ -37,9 +37,9 @@ class TableDB {
 };
 
 
-class Worker {
+class LowIntensityWorker {
  public:
-  Worker(Proclet<TableDB> tabledb)
+  LowIntensityWorker(Proclet<TableDB> tabledb)
   : _tabledb(std::move(tabledb)){}
 
   bool foo(uint32_t kNumTableEntries) {
@@ -68,10 +68,49 @@ class Worker {
     Proclet<TableDB> _tabledb;
 };
 
+class HighIntensityWorker {
+ public:
+  HighIntensityWorker(Proclet<TableDB> tabledb)
+  : _tabledb(std::move(tabledb)){}
+
+  bool foo(uint32_t kNumTableEntries) {
+    std::vector<nu::Thread> threads;
+    threads.reserve(kNumThreadsPerProclet);
+
+    for (uint32_t t = 0; t < kNumThreadsPerProclet; t++) {
+      threads.emplace_back([&, kNumTableEntries] {
+        for (int64_t i = 0; i < kNumTableEntries; i++){
+          int64_t v = _tabledb.run(&TableDB::get, i);
+          if (v != i){
+            std::cout << "BADRESULT" << v;
+            BUG_ON(true);
+          }
+          for (int j = 0; j < 100000; j++){
+            v *= v;
+            v += v;
+            v /= 2;
+            v /= 3;
+            if ((((v * 2) + 2) / 2) - 1 != v){
+              std::cout << "BADRESULT" << v;
+            }
+          }
+        }
+      });
+    }
+
+    for (auto &thread : threads) {
+      thread.join();
+    }
+    
+    return true;
+  }
+  private:
+    Proclet<TableDB> _tabledb;
+};
+
 
 
 void do_work() {
-  std::vector<Proclet<Worker>> workers;
   // only works when main server is started with ip 18.18.1.3, remote server started with 18.18.1.2
   NodeIP localip = 303169795;
   NodeIP remoteip = 303169794;
@@ -80,27 +119,26 @@ void do_work() {
   for (int64_t i = 0; i < kNumTableEntries; i++) {
     dis_hash.run(&TableDB::put, i, i);
   }
-  for (int64_t i = 0; i < kNumProclets; i++) {
-    workers.emplace_back(make_proclet<Worker>(
+  auto low_proclet = make_proclet<LowIntensityWorker>(
       std::forward_as_tuple(dis_hash), true, std::nullopt, remoteip
-    ));
-  }
+  );
+  auto high_proclet = make_proclet<HighIntensityWorker>(
+      std::forward_as_tuple(dis_hash), true, std::nullopt, remoteip
+  );
 
   std::vector<rt::Thread> ths;
-  for (uint32_t i = 0; i < kNumProclets; i++) {
-    ths.emplace_back([worker = std::move(workers[i])]() mutable {
-      //Buf buf;
-      //buf.resize(kBufSize / kObjSize);
-      for (uint32_t j = 0; j < kNumInvocationsPerProclet; j++) {
-        bool result = worker.run(&Worker::foo, kNumProclets);
-        BUG_ON(!result);
-        //if (!result){
-          //std::cout << "Wrong output from foo" << std::endl;
-        //}
-      }
-      //std::cout << "Finished execution for worker " << i << std::endl;
-    });
-  }
+  ths.emplace_back([worker = std::move(low_proclet)]() mutable {
+    for (uint32_t j = 0; j < kNumInvocationsPerProclet; j++) {
+      bool result = worker.run(&LowIntensityWorker::foo, kNumProclets);
+      BUG_ON(!result);
+    }
+  });
+  ths.emplace_back([worker = std::move(high_proclet)]() mutable {
+    for (uint32_t j = 0; j < kNumInvocationsPerProclet; j++) {
+      bool result = worker.run(&HighIntensityWorker::foo, kNumProclets);
+      BUG_ON(!result);
+    }
+  });
 
   auto t0 = microtime();
   for (auto &th : ths) {

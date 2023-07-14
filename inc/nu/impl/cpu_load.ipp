@@ -56,6 +56,14 @@ inline float CPULoad::get_load() const {
   return cpu_load_;
 }
 
+inline uint64_t CPULoad::get_total_cycles() const {
+  uint64_t ret = 0;
+  for (uint32_t i = 0; i < kNumCores; i++){
+    ret += cycles_[i].c;
+  }
+  return ret;
+}
+
 inline bool CPULoad::is_monitoring() const {
   return get_runtime()->caladan()->thread_monitored();
 }

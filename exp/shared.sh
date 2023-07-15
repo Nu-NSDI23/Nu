@@ -202,9 +202,7 @@ function cleanup() {
 	if [ -n "$nic_dev" ]
 	then
             ssh $(ssh_ip $i) "sudo bridge fdb | grep $nic_dev | awk '{print $1}' | \
-                                   xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\";
-                              sudo ip addr show $nic_dev | grep \"inet \" | grep -v \"10\.10\.1\.\" | \
-                                   awk '{print \$2}' | xargs -I {} sudo ip addr delete {} dev $nic_dev"
+                                   xargs -I {} bash -c \"sudo bridge fdb delete {} dev $nic_dev\""
 	fi
 	ssh $(ssh_ip $i) "cd `pwd`; rm -rf .nu_libs*"
     done
@@ -213,6 +211,14 @@ function cleanup() {
 function force_cleanup() {
     echo -e "\nPlease wait for proper cleanups..."
     cleanup
+    for i in `seq 1 $num_nodes`
+    do
+	if [ -n "$nic_dev" ]
+	then
+            ssh $(ssh_ip $i) "sudo ip addr show $nic_dev | grep \"inet \" | grep -v \"10\.10\.1\.\" | \
+                                   awk '{print \$2}' | xargs -I {} sudo ip addr delete {} dev $nic_dev"
+	fi
+    done
     sudo pkill -9 run.sh
     exit 1
 }

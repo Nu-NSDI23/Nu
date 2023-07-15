@@ -5,6 +5,7 @@
 #include <optional>
 #include <utility>
 
+#include "exception.h"
 extern "C" {
 #include <runtime/net.h>
 }

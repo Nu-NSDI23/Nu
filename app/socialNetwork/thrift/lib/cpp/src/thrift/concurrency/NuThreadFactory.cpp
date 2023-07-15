@@ -114,7 +114,7 @@ public:
     }
   }
 
-  Thread::id_t getId() { return thread_.get() ? thread_->get_id() : 0; }
+  Thread::id_t getId() { return thread_.get() ? thread_->get_id() : nu::Thread::get_current_id(); }
 
   stdcxx::shared_ptr<Runnable> runnable() const { return Thread::runnable(); }
 

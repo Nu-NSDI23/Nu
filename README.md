@@ -22,7 +22,7 @@ You can build Nu by simply executing the `build.sh` script we provided. You can 
 After building Nu, you can test it by executing the `test.sh` script on one machine (don't run it simultaneously on multiple machines as it will cause interference). You are expected to see all unit tests passed. All test files are located in the `test` folder; they also serve as a good reference to how to write Nu programs.
 
 ## Reproducing Paper Results
-Coming soon, stay tuned!
+We include our code and push-button scripts in the ``exp`` folder.
 
 ## Repo Structure
 ```

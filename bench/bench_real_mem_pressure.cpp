@@ -42,11 +42,11 @@ void alloc_thread_fn(std::atomic<uint32_t> *alloc_times,
                      uint32_t mbs_target) {
   auto size = kMallocGranularityMB * nu::kOneMB;
   while (1) {
-    void *ptr;
     {
       rt::Preempt p;
       rt::PreemptGuard pg(&p);
-      ACCESS_ONCE(ptr) = malloc(size);
+      auto ptr = malloc(size);
+      memset(ptr, 0xFF, size);
     }
     traces->emplace_back(microtime());
 

@@ -15,7 +15,7 @@ constexpr static uint32_t kNumTableEntries = 1000000;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
 constexpr static uint32_t kNumInvocationsPerProclet = 10;
-constexpr static uint32_t kNumThreadsPerProclet = 5;
+constexpr static uint32_t kNumThreadsPerProclet = 10;
 
 struct Obj {
   uint8_t data[kObjSize];
@@ -85,14 +85,11 @@ class HighIntensityWorker {
             std::cout << "BADRESULT" << v;
             BUG_ON(true);
           }
-          for (int j = 0; j < 100000; j++){
-            v *= v;
-            v += v;
-            v /= 2;
-            v /= 3;
-            if ((((v * 2) + 2) / 2) - 1 != v){
-              std::cout << "BADRESULT" << v;
-            }
+        }
+        auto start_time = microtime();
+        while (true){
+          if (microtime() - start_time > 1000000){
+            break;
           }
         }
       });

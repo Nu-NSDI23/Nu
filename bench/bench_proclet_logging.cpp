@@ -10,12 +10,12 @@
 using namespace nu;
 using namespace std;
 
-constexpr static uint32_t kNumProclets = 10;
-constexpr static uint32_t kNumTableEntries = 1000000;
+constexpr static uint32_t kNumProclets = 1;
+constexpr static uint32_t kNumTableEntries = 100000;
 constexpr static uint32_t kObjSize = 100;
 constexpr static uint32_t kBufSize = 102400;
 constexpr static uint32_t kNumInvocationsPerProclet = 10;
-constexpr static uint32_t kNumThreadsPerProclet = 20;
+constexpr static uint32_t kNumThreadsPerProclet = 50;
 
 struct Obj {
   uint8_t data[kObjSize];
@@ -42,26 +42,28 @@ class Worker {
   Worker(Proclet<TableDB> tabledb)
   : _tabledb(std::move(tabledb)){}
 
-  bool foo(uint32_t kNumTableEntries) {
+  bool foo(uint32_t kNumTableEntries, uint32_t kNumInvocationsPerProclet) {
     std::vector<nu::Thread> threads;
     threads.reserve(kNumThreadsPerProclet);
+    for (uint32_t j = 0; j < kNumInvocationsPerProclet; j++){
 
-    for (uint32_t i = 0; i < kNumThreadsPerProclet; i++) {
-      threads.emplace_back([&, kNumTableEntries] {
-        for (int64_t i = 0; i < kNumTableEntries; i++){
-          int64_t v = _tabledb.run(&TableDB::get, i);
-          if (v != i){
-            std::cout << "BADRESULT" << v;
-            BUG_ON(true);
+      for (uint32_t i = 0; i < kNumThreadsPerProclet; i++) {
+        threads.emplace_back([&, kNumTableEntries] {
+          for (int64_t i = 0; i < kNumTableEntries; i++){
+            int64_t v = _tabledb.run(&TableDB::get, i);
+            if (v != i){
+              std::cout << "BADRESULT" << v;
+              BUG_ON(true);
+            }
           }
-        }
-      });
-    }
+        });
+      }
 
-    for (auto &thread : threads) {
-      thread.join();
-    }
-    
+      for (auto &thread : threads) {
+        thread.join();
+      }
+      threads.clear();
+    }    
     return true;
   }
   private:

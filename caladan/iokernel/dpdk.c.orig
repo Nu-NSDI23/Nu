@@ -257,7 +257,7 @@ int dpdk_init(void)
 int dpdk_late_init(void)
 {
 	/* initialize port */
-	dp.port = 2;
+	dp.port = 0;
 	if (dpdk_port_init(dp.port, dp.rx_mbuf_pool) != 0) {
 		log_err("dpdk: cannot init port %"PRIu8 "\n", dp.port);
 		return -1;

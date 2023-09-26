@@ -1,0 +1,11 @@
+--- iokernel/dpdk.c
++++ iokernel/dpdk.c
+@@ -239,7 +239,7 @@ int dpdk_init(void)
+ int dpdk_late_init(void)
+ {
+ 	/* initialize port */
+-	dp.port = 0;
++	dp.port = 2;
+ 	if (dpdk_port_init(dp.port, dp.rx_mbuf_pool) != 0) {
+ 		log_err("dpdk: cannot init port %"PRIu8 "\n", dp.port);
+ 		return -1;

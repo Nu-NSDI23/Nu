@@ -88,14 +88,15 @@ function force_cleanup {
     exit 1
 }
 
+prepare
 trap force_cleanup INT
 
-prepare
 if [[ -z $tests_prefix ]]; then
     run_tests test_
 else
     run_tests $tests_prefix
 fi
+
 cleanup
 
 if [[ $all_passed -eq 1 ]]; then

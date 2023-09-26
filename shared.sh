@@ -23,7 +23,7 @@ function kill_process {
     pid=`pgrep $1`
     if [ -n "$pid" ]
     then
-	{ sudo kill $pid && sudo wait $pid; } 2>/dev/null
+	{ sudo kill -9 $pid && sudo wait $pid; } 2>/dev/null
     fi
 }
 

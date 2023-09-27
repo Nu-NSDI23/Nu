@@ -26,7 +26,7 @@ class Test {
     // Should be printed at the initial server node.
     std::cout << "I am here 0" << std::endl;
 
-    if (int i = 1; i < kMaxLoop; i++) {
+    for (int i = 1; i < kMaxLoop; i++) {
 	    // Set resource pressure using the mock interface
 	    {
 	      rt::Preempt p;

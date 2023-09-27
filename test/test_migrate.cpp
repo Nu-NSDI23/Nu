@@ -17,6 +17,7 @@ extern "C" {
 using namespace nu;
 
 constexpr static int kMagic = 0xDEADBEEF;
+constexpr static int kMaxLoop = 10;
 
 namespace nu {
 class Test {
@@ -24,38 +25,19 @@ class Test {
   int run() {
     // Should be printed at the initial server node.
     std::cout << "I am here 0" << std::endl;
-    // Set resource pressure using the mock interface
-    {
-      rt::Preempt p;
-      rt::PreemptGuard g(&p);
-      get_runtime()->pressure_handler()->mock_set_pressure();
-    }
-    // Ensure that the migration happens before the function returns.
-    delay_us(1000 * 1000);
-    // Should be printed at the new server node.
-    std::cout << "I am here 1" << std::endl;
 
-    // Set resource pressure using the mock interface
-    {
-      rt::Preempt p;
-      rt::PreemptGuard g(&p);
-      get_runtime()->pressure_handler()->mock_set_pressure();
-    }
-    // Ensure that the migration happens before the function returns.
-    delay_us(1000 * 1000);
-    // Should be printed at the new server node.
-    std::cout << "I am here 2" << std::endl;
-    
-    // Set resource pressure using the mock interface
-    {
-      rt::Preempt p;
-      rt::PreemptGuard g(&p);
-      get_runtime()->pressure_handler()->mock_set_pressure();
-    }
-    // Ensure that the migration happens before the function returns.
-    delay_us(1000 * 1000);
-    // Should be printed at the new server node.
-    std::cout << "I am here 3" << std::endl;
+    if (int i = 1; i < kMaxLoop; i++) {
+	    // Set resource pressure using the mock interface
+	    {
+	      rt::Preempt p;
+	      rt::PreemptGuard g(&p);
+	      get_runtime()->pressure_handler()->mock_set_pressure();
+	    }
+	    // Ensure that the migration happens before the function returns.
+	    delay_us(1000 * 1000);
+	    // Should be printed at the new server node.
+	    std::cout << "I am here " << i << std::endl;
+    } 
 
     return kMagic;
   }

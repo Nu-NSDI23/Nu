@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <unordered_map>
 
 extern "C" {
 #include <runtime/net.h>
@@ -68,6 +69,11 @@ struct ProcletHeader {
   // Logical timer.
   Time time;
 
+  // tracks total remote data requested and total cycles elapsed for compute intensity
+  uint64_t total_data;
+  uint64_t total_cycles;
+  uint64_t last_cycles;
+
   //--- Fields below will be automatically copied during migration. ---/
   uint8_t copy_start[0];
 
@@ -76,6 +82,13 @@ struct ProcletHeader {
 
   // Ref cnt related.
   int ref_cnt;
+
+  // Used for monitoring total amount of local calls, estimate total bytes for performance
+  Counter local_call_cnt;
+
+  // stores amount and total data size of outgoing remote calls to every remote proclet marked by their ProcletID 
+  // Synchronized using spin_lock
+  std::unordered_map<ProcletID, std::pair<uint32_t, uint64_t>> remote_call_map;
 
   // Heap mem allocator. Must be the last field.
   Counter slab_ref_cnt;

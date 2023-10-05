@@ -13,6 +13,9 @@ extern "C" {
 #include "nu/runtime.hpp"
 #include "nu/proclet_mgr.hpp"
 
+#include <fstream> // FOR DEBUGGING
+//#include <unordered_map> // FOR DEBUGGING
+
 namespace nu {
 
 uint8_t proclet_statuses[kMaxNumProclets];
@@ -42,11 +45,29 @@ void ProcletManager::madvise_populate(void *proclet_base,
 void ProcletManager::cleanup(void *proclet_base, bool for_migration) {
   RuntimeSlabGuard guard;
   auto *proclet_header = reinterpret_cast<ProcletHeader *>(proclet_base);
-
+  
   if (!for_migration) {
     while (unlikely(proclet_header->slab_ref_cnt.get())) {
       get_runtime()->caladan()->thread_yield();
     }
+    
+    // dumping logs for debugging purposes
+    std::ofstream logfile;
+    logfile.open("proclet_metrics.txt", std::ios_base::app);
+
+    // communication logging
+    //logfile << "From proclet: " << proclet_base << "\n# local calls: " << proclet_header->local_call_cnt.get() << "\n# remote calls & size:\n";
+    //for (auto it = proclet_header->remote_call_map.begin(); it != proclet_header->remote_call_map.end(); it++){
+    //  logfile << "Proclet ID: " << it->first << "#: " << it->second.first << ", size: " << it->second.second << " bytes\n";
+    //}
+
+    // compute intensity logging
+    float intensity = (proclet_header->total_data == 0) ? 0 : (proclet_header->total_cycles) / (proclet_header->total_data);
+    logfile << "From proclet: " << proclet_base << ":\n" << "Intensity: " << intensity << "\n";
+    //logfile << proclet_header->cpu_load.get_total_cycles();
+    logfile << "----------------------------\n";
+    logfile.close();
+    // end dumping logs
   }
 
   // Deregister its slab ID.
@@ -83,9 +104,14 @@ void ProcletManager::setup(void *proclet_base, uint64_t capacity,
   std::construct_at(&proclet_header->blocked_syncer);
   std::construct_at(&proclet_header->time);
   proclet_header->migratable = migratable;
+  proclet_header->total_data = 0;
+  proclet_header->total_cycles = 0;
+  proclet_header->last_cycles = 0;
 
   if (!from_migration) {
     proclet_header->ref_cnt = 1;
+    std::construct_at(&proclet_header->remote_call_map);
+    std::construct_at(&proclet_header->local_call_cnt);
     std::construct_at(&proclet_header->rcu_lock);
     std::construct_at(&proclet_header->slab_ref_cnt);
     auto slab_region_size = capacity - sizeof(ProcletHeader);

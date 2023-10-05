@@ -5,6 +5,8 @@
 #include <sstream>
 #include <type_traits>
 #include <utility>
+#include <unordered_map>
+// #include <fstream> // debugging
 
 extern "C" {
 #include <base/assert.h>
@@ -50,7 +52,8 @@ void Proclet<T>::invoke_remote(MigrationGuard &&caller_guard, ProcletID id,
   caller_guard.reset();
 
 retry:
-  auto states_view = oa_sstream->ss.view();
+  auto states_view =
+   oa_sstream->ss.view();
   auto states_data = reinterpret_cast<const std::byte *>(states_view.data());
   auto states_size = oa_sstream->ss.tellp();
 
@@ -60,11 +63,14 @@ retry:
 
   auto *client = get_runtime()->rpc_client_mgr()->get_by_proclet_id(id);
   rc = client->Call(args_span, &return_buf);
+
   if (unlikely(rc == kErrWrongClient)) {
     get_runtime()->rpc_client_mgr()->invalidate_cache(id, client);
     goto retry;
   }
   assert(rc == kOk);
+  
+  
   get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
 
   optional_caller_guard =
@@ -72,6 +78,32 @@ retry:
   if (!optional_caller_guard) {
     Migrator::migrate_thread_and_ret_val<void>(
         std::move(return_buf), to_proclet_id(caller_header), nullptr, nullptr);
+  }
+  else{
+    // metric logging
+    if (caller_header){
+      ProcletSlabGuard slab_guard(&caller_header->slab);
+
+      caller_header->spin_lock.lock();
+
+      auto target_kvpair = caller_header->remote_call_map.find(id);
+      if (target_kvpair != (caller_header->remote_call_map.end()) ){
+        target_kvpair->second.first += 1;
+        target_kvpair->second.second += static_cast<uint64_t>(states_size); 
+      }
+      else{
+        caller_header->remote_call_map.emplace(id, std::make_pair(1, static_cast<uint64_t>(states_size)));
+      }
+
+      // compute intensity data logging
+      caller_header->total_data += static_cast<uint64_t>(states_size);
+      uint64_t curr_total_cycle = caller_header->cpu_load.get_total_cycles();
+      caller_header->total_cycles += curr_total_cycle - caller_header->last_cycles;
+      caller_header->last_cycles = curr_total_cycle;
+
+      caller_header->spin_lock.unlock();
+    }
+    // end metric logging 
   }
 }
 
@@ -100,15 +132,17 @@ retry:
 
   auto *client = get_runtime()->rpc_client_mgr()->get_by_proclet_id(id);
   rc = client->Call(args_span, &return_buf);
+
   if (unlikely(rc == kErrWrongClient)) {
     get_runtime()->rpc_client_mgr()->invalidate_cache(id, client);
     goto retry;
   }
   assert(rc == kOk);
-  get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);
+  get_runtime()->archive_pool()->put_oa_sstream(oa_sstream);  
 
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
+
   if (!optional_caller_guard) {
     Migrator::migrate_thread_and_ret_val<RetT>(
         std::move(return_buf), to_proclet_id(caller_header), &ret, nullptr);
@@ -116,6 +150,35 @@ retry:
     auto *ia_sstream = get_runtime()->archive_pool()->get_ia_sstream();
     auto &[ret_ss, ia] = *ia_sstream;
     auto return_span = return_buf.get_mut_buf();
+
+    // metric gathering
+    if (caller_header){
+      ProcletSlabGuard slab_guard(&caller_header->slab);
+
+      caller_header->spin_lock.lock();
+
+      auto target_kvpair = caller_header->remote_call_map.find(id);
+      if (target_kvpair != (caller_header->remote_call_map.end()) ){
+        target_kvpair->second.first += 1;
+        target_kvpair->second.second += 
+          static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes()); 
+      }
+      else{
+        caller_header->remote_call_map.emplace(id, std::make_pair(
+          1, static_cast<uint64_t>(states_size) + static_cast<uint64_t>(return_span.size_bytes())));
+      }
+
+      // compute intensity data logging
+      caller_header->total_data += static_cast<uint64_t>(states_size);
+      uint64_t curr_total_cycle = caller_header->cpu_load.get_total_cycles();
+      caller_header->total_cycles += curr_total_cycle - caller_header->last_cycles;
+      caller_header->last_cycles = curr_total_cycle;
+
+      caller_header->spin_lock.unlock();
+
+    }
+    // end metric gathering
+    
     ret_ss.span(
         {reinterpret_cast<char *>(return_span.data()), return_span.size()});
     if (caller_header) {
@@ -309,6 +372,10 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
             reinterpret_cast<StatesTuple *>(alloca(sizeof(StatesTuple)));
         new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
+            
+        // increment local call counter
+        caller_header->local_call_cnt.inc_unsafe();
+
         caller_migration_guard.reset();
 
         if constexpr (kHasRetVal) {

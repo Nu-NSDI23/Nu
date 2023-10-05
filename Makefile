@@ -100,6 +100,10 @@ bench_cpu_overloaded_src = bench/bench_cpu_overloaded.cpp
 bench_cpu_overloaded_obj = $(bench_cpu_overloaded_src:.cpp=.o)
 bench_compute_intensity_src = bench/bench_compute_intensity.cpp
 bench_compute_intensity_obj = $(bench_compute_intensity_src:.cpp=.o)
+bench_proclet_logging_src = bench/bench_proclet_logging.cpp
+bench_proclet_logging_obj = $(bench_proclet_logging_src:.cpp=.o)
+bench_compute_intensity_src = bench/bench_compute_intensity.cpp
+bench_compute_intensity_obj = $(bench_compute_intensity_src:.cpp=.o)
 
 ctrl_main_src = src/ctrl_main.cpp
 ctrl_main_obj = $(ctrl_main_src:.cpp=.o)
@@ -114,7 +118,7 @@ bin/test_rem_shared_ptr bin/bench_fragmentation bin/test_perf bin/bench_real_mem
 bin/bench_real_cpu_pressure bin/test_cpu_load bin/test_tcp_poll bin/test_thread \
 bin/test_fast_path bin/test_slow_path bin/ctrl_main bin/test_max_num_proclets \
 bin/bench_controller bin/test_cereal bin/bench_proclet_call_bw bin/bench_cpu_overloaded \
-bin/test_continuous_migrate
+bin/test_continuous_migrate bin/bench_proclet_logging bin/bench_compute_intensity
 
 %.d: %.cpp
 	@$(CXX) $(CXXFLAGS) $< -MM -MT $(@:.d=.o) >$@
@@ -174,6 +178,10 @@ bin/bench_proclet_call_tput: $(bench_proclet_call_tput_obj) $(librt_libs) $(RUNT
 	$(LDXX) -o $@ $(bench_proclet_call_tput_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
 bin/bench_proclet_call_bw: $(bench_proclet_call_bw_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
 	$(LDXX) -o $@ $(bench_proclet_call_bw_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
+bin/bench_proclet_logging: $(bench_proclet_logging_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
+	$(LDXX) -o $@ $(bench_proclet_logging_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
+bin/bench_compute_intensity: $(bench_compute_intensity_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
+	$(LDXX) -o $@ $(bench_compute_intensity_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
 bin/bench_proclet_call_lat: $(bench_proclet_call_lat_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
 	$(LDXX) -o $@ $(bench_proclet_call_lat_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
 bin/bench_thread: $(bench_thread_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)

@@ -21,6 +21,8 @@ src = $(lib_src)
 obj = $(src:.cpp=.o)
 dep = $(obj:.o=.d)
 
+test_interproclet_src = test/test_interproclet.cpp
+test_interproclet_obj = $(test_interproclet_src:.cpp=.o)
 test_proclet_src = test/test_proclet.cpp
 test_proclet_obj = $(test_proclet_src:.cpp=.o)
 test_slab_src = test/test_slab.cpp
@@ -114,13 +116,15 @@ bin/test_rem_shared_ptr bin/bench_fragmentation bin/test_perf bin/bench_real_mem
 bin/bench_real_cpu_pressure bin/test_cpu_load bin/test_tcp_poll bin/test_thread \
 bin/test_fast_path bin/test_slow_path bin/ctrl_main bin/test_max_num_proclets \
 bin/bench_controller bin/test_cereal bin/bench_proclet_call_bw bin/bench_cpu_overloaded \
-bin/test_continuous_migrate
+bin/test_continuous_migrate bin/test_interproclet
 
 %.d: %.cpp
 	@$(CXX) $(CXXFLAGS) $< -MM -MT $(@:.d=.o) >$@
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+bin/test_interproclet: $(test_interproclet_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
+	$(LDXX) -o $@ $(test_interproclet_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
 bin/test_proclet: $(test_proclet_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)
 	$(LDXX) -o $@ $(test_proclet_obj) $(lib_obj) $(librt_libs) $(RUNTIME_LIBS) $(LDFLAGS)
 bin/test_slab: $(test_slab_obj) $(librt_libs) $(RUNTIME_DEPS) $(lib_obj)

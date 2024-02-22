@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <iostream>
 #include <numeric>
+#include <tuple>
 #include <vector>
 
 extern "C" {
@@ -16,8 +17,8 @@ using namespace nu;
 
 class Adder {
  public:
-  std::vector<int> add(const std::vector<int> &vec_a,
-                       const std::vector<int> &vec_b) {
+  std::vector<int> add(const std::vector<int> vec_a,
+                       const std::vector<int> vec_b) {
     std::vector<int> vec_c;
     for (size_t i = 0; i < vec_a.size(); i++) {
       vec_c.push_back(vec_a[i] + vec_b[i]);
@@ -44,6 +45,10 @@ class VecStore {
     ); 
   }
 
+  std::vector<int> add_vec_nonclosure() {
+    return adder.run(&Adder::add, a_, b_);
+  }
+
  private:
   std::vector<int> a_;
   std::vector<int> b_;
@@ -58,17 +63,17 @@ void do_work() {
 
   auto rem_vec = make_proclet<VecStore>(std::forward_as_tuple(a, b));
   auto c = rem_vec.run(&VecStore::add_vec);
-//   auto rem_adder = make_proclet<Adder>();
-//   auto c = rem_adder.run(
-//       +[](Adder &adder, Proclet<VecStore> rem_vec) {
-//         auto vec_a = rem_vec.run(&VecStore::get_vec_a);
-//         auto vec_b = rem_vec.run(&VecStore::get_vec_b);
-//         return adder.add(vec_a, vec_b);
-//       },
-//       rem_vec);
 
   for (size_t i = 0; i < a.size(); i++) {
     if (c[i] != a[i] + b[i]) {
+      passed = false;
+      break;
+    }
+  }
+
+  auto c_nonclosure = rem_vec.run(&VecStore::add_vec_nonclosure);
+  for (size_t i = 0; i < a.size(); i++) {
+    if (c_nonclosure[i] != a[i] + b[i]) {
       passed = false;
       break;
     }

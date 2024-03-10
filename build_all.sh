@@ -2,7 +2,7 @@
 
 function not_supported {
     echo 'Please set env var $NODE_TYPE, 
-supported list: [r650, r6525, c6525, d6515, xl170, xl170_uswitch, yinyang, zg]'
+supported list: [c6525, r6525, d6515, r650, yinyang, zg]'
     exit 1
 }
 

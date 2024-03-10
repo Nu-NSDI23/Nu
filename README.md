@@ -8,7 +8,7 @@ Zhenyuan Ruan, Seo Jin Park, Marcos Aguilera, Adam Belay, Malte Schwarzkopf<br>
 20th USENIX Symposium on Networked Systems Design and Implementation ([NSDI '23](https://www.usenix.org/conference/nsdi23))<br>
 
 ## Supported Platform
-We recommend you run Nu on [Cloudlab](https://www.cloudlab.us/). Currently, Nu supports Cloudlab's r650, r6525, c6525, d6515, and xl170 instances. In theory, Nu is compatible with any X86 server equipped with a Mellanox CX5/CX6 NIC and Ethernet network. However, it may require some porting effort to adapt Nu to other platforms not listed above.
+We recommend you run Nu on [Cloudlab](https://www.cloudlab.us/). Currently, Nu supports Cloudlab's c6525 (thoroughly tested), r650, r6525, and d6515 instances. In theory, Nu is compatible with any X86 server equipped with a Mellanox CX5/CX6 NIC and Ethernet network. However, it may require some porting effort to adapt Nu to other platforms not listed above.
 
 ## Build Instructions
 ### Configure Cloudlab Instances

@@ -84,7 +84,7 @@ void Migrator::snapshot_thread_and_ret_val(
 }
 
 template <typename RetT>
-inline void Migrator::migrate_thread_and_ret_val(
+inline MigrationGuard Migrator::migrate_thread_and_ret_val(
     RPCReturnBuffer &&ret_val_buf, ProcletID dest_id, RetT *dest_ret_val_ptr,
     std::move_only_function<void()> &&cleanup_fn) {
   assert(!get_runtime()->caladan()->thread_get_owner_proclet());
@@ -103,6 +103,9 @@ inline void Migrator::migrate_thread_and_ret_val(
         get_runtime()->get_proclet_stack_range(__self).end);
     switch_stack_and_transmit(&req_buf, req_buf_len, dest_id, proclet_stack);
   }
+
+  barrier();
+  return MigrationGuard();
 }
 
 }  // namespace nu

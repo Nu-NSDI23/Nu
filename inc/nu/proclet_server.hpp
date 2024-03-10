@@ -43,7 +43,8 @@ class ProcletServer {
                           RPCReturner *returner);
   template <bool MigrEn, bool CPUMon, bool CPUSamp, typename Cls, typename RetT,
             typename FnPtr, typename... Ss>
-  static void run_closure_locally(MigrationGuard *callee_migration_guard,
+  static void run_closure_locally(MigrationGuard *caller_migration_guard,
+                                  MigrationGuard *callee_migration_guard,
                                   const ProcletSlabGuard &callee_slab_guard,
                                   RetT *caller_ptr,
                                   ProcletHeader *caller_header,

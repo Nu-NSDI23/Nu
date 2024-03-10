@@ -85,10 +85,10 @@ class Proclet {
   std::optional<Future<void>> update_ref_cnt(ProcletID id, int delta);
   template <typename... S1s>
   static void invoke_remote(MigrationGuard &&caller_guard, ProcletID id,
-                            S1s &&... states);
+                            S1s &&...states);
   template <typename RetT, typename... S1s>
   static RetT invoke_remote_with_ret(MigrationGuard &&caller_guard,
-                                     ProcletID id, S1s &&... states);
+                                     ProcletID id, S1s &&...states);
   template <typename... As>
   static Proclet __create(bool pinned, uint64_t capacity, NodeIP ip_hint,
                           As &&... args);

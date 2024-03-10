@@ -70,7 +70,7 @@ retry:
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
   if (!optional_caller_guard) {
-    Migrator::migrate_thread_and_ret_val<void>(
+    caller_guard = Migrator::migrate_thread_and_ret_val<void>(
         std::move(return_buf), to_proclet_id(caller_header), nullptr, nullptr);
   }
 }
@@ -110,7 +110,7 @@ retry:
   optional_caller_guard =
       get_runtime()->attach_and_disable_migration(caller_header);
   if (!optional_caller_guard) {
-    Migrator::migrate_thread_and_ret_val<RetT>(
+    caller_guard = Migrator::migrate_thread_and_ret_val<RetT>(
         std::move(return_buf), to_proclet_id(caller_header), &ret, nullptr);
   } else {
     auto *ia_sstream = get_runtime()->archive_pool()->get_ia_sstream();
@@ -210,10 +210,10 @@ Proclet<T> Proclet<T>::__create(bool pinned, uint64_t capacity, NodeIP ip_hint,
         get_runtime()->attach_and_disable_migration(caller_header);
     if (!optional_caller_migration_guard) {
       RPCReturnBuffer return_buf;
-      Migrator::migrate_thread_and_ret_val<void>(std::move(return_buf),
-                                                 to_proclet_id(caller_header),
-                                                 nullptr, nullptr);
-      optional_caller_migration_guard = MigrationGuard();
+      *optional_caller_migration_guard =
+          Migrator::migrate_thread_and_ret_val<void>(
+              std::move(return_buf), to_proclet_id(caller_header), nullptr,
+              nullptr);
     }
   }
 
@@ -309,20 +309,21 @@ RetT Proclet<T>::__run(RetT (*fn)(T &, S0s...), S1s &&... states) {
             reinterpret_cast<StatesTuple *>(alloca(sizeof(StatesTuple)));
         new (copied_states)
             StatesTuple(pass_across_proclet(std::forward<S1s>(states))...);
-        caller_migration_guard.reset();
 
         if constexpr (kHasRetVal) {
           ProcletServer::run_closure_locally<MigrEn, CPUMon, CPUSamp, T, RetT,
                                              decltype(fn),
                                              std::decay_t<S1s>...>(
-              &(*optional_callee_migration_guard), slab_guard, &ret,
-              caller_header, callee_header, fn, copied_states);
+              &caller_migration_guard, &(*optional_callee_migration_guard),
+              slab_guard, &ret, caller_header, callee_header, fn,
+              copied_states);
         } else {
           ProcletServer::run_closure_locally<MigrEn, CPUMon, CPUSamp, T, RetT,
                                              decltype(fn),
                                              std::decay_t<S1s>...>(
-              &(*optional_callee_migration_guard), slab_guard, nullptr,
-              caller_header, callee_header, fn, copied_states);
+              &caller_migration_guard, &(*optional_callee_migration_guard),
+              slab_guard, nullptr, caller_header, callee_header, fn,
+              copied_states);
         }
       }
 
